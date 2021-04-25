@@ -1,0 +1,43 @@
+{
+    "Modules": {
+        "...MASTER...": {},
+        "std": {
+            "Compiled": "Yes",
+            "Compiled Times": 9
+        },
+        "if_stage_bench": {
+            "Compiled": "Yes",
+            "Compiled Times": 9
+        }
+    },
+    "reusePaths": {
+        "amcQw_d": {
+            "icPath": "csrc"
+        },
+        "reYIK_d": {
+            "icPath": "csrc"
+        }
+    },
+    "CompUnits": {
+        "I2Z94_d": {
+            "archive": "archive.8/_16855_archive_1.a",
+            "mod": "if_stage_bench",
+            "out": "I2Z94_d.o",
+            "bytes": 85361,
+            "mode": 4,
+            "checksum": 0
+        }
+    },
+    "ObjArchives": [
+        {
+            "archive": "archive.8/_16855_archive_1.a",
+            "objects": [
+                [
+                    "I2Z94_d.o",
+                    85361
+                ]
+            ],
+            "size": 85361
+        }
+    ]
+}

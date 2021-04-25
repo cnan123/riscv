@@ -1,0 +1,72 @@
+@verdi rc file Version 1.0
+[General]
+VerdiVersion = Verdi3_L-2016.06-1
+[KeyNote]
+Line1 = Automatic Backup 0
+[TestBench]
+ConstrViewShow = 0
+InherViewShow = 0
+FSDBMsgShow = 0
+AnnotationShow = 0
+powerDumped = 0
+[hb]
+postSimFile = /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/verilog.fsdb
+syncTime = 115
+viewport = 67 27 1853 1025 411 188 559 1851
+activeNode = "tb.riscv_core.ex_stage"
+activeScope = "tb.riscv_core.ex_stage"
+activeFile = "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/ex_stage.v"
+interactiveMode = False
+viewType = Source
+simulatorMode = False
+sourceBeginLine = 63
+baMode = False
+srcLineNum = True
+syncSignal = False
+traceMode = Hierarchical
+showTraceInSchema = True
+paMode = False
+funcMode = False
+traceCrossHier = True
+DnDtraceCrossHierOnly = True
+traceIncTopPort = False
+leadingZero = False
+signalPane = False
+Scope1 = "tb.riscv_core.ex_stage"
+Scope2 = "tb.riscv_core.mem_stage"
+Scope3 = "tb.riscv_core.id_stage"
+Scope4 = "tb.riscv_core.if_stage"
+multipleSelection = 1 82 2 0 0
+sdfCheckUndef = FALSE
+simFlow = FALSE
+[hb.sourceTab.1]
+scope = tb.riscv_core.ex_stage
+File = /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/ex_stage.v
+Line = 64
+[imp.design1]
+dbEnum =  oh
+invokeDir = /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl
+design = DebussyLib
+hostCommand = hostCommand -sv -f core.lst
+[nMemoryManager]
+FsdbFile = /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/verilog.fsdb
+UserActionNum = 0
+nMemWindowNum = 0
+[wave.0]
+viewPort = 0 28 1853 647 172 65
+SessionFile = /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/verdiLog/novas_autosave.ses.wave.0
+displayGrid = FALSE
+hierarchicalName = FALSE
+snap = TRUE
+displayLeadingZeros = FALSE
+fixDelta = FALSE
+displayCursorMarker = FALSE
+autoUpdate = FALSE
+highlightGlitchs = FALSE
+waveformSync = FALSE
+displayErrors = TRUE
+displayMsgSymbols = TRUE
+showMsgDescriptions = TRUE
+autoFit = FALSE
+displayDeltaY = FALSE
+centerCursor = FALSE

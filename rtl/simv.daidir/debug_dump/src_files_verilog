@@ -1,0 +1,13 @@
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/arbiter.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/controller.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/data_bypass.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/ex_stage.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/id_stage.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/if_stage.sv
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/mem_stage.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/register_file.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/riscv_core.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/sync_fifo.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/tb.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/tb_memory.v
+/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/wb_stage.v

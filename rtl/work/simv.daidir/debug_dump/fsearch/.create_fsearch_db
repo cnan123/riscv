@@ -1,0 +1,9 @@
+#!/bin/sh -h 
+PYTHONHOME=/home/cnan/synopsys/vcs_2016.06/etc/search/pyh
+export PYTHONHOME
+PYTHONPATH=/home/cnan/synopsys/vcs_2016.06/linux64/lib/pylib27
+export PYTHONPATH
+LD_LIBRARY_PATH=/home/cnan/synopsys/vcs_2016.06/linux64/lib:/home/cnan/synopsys/vcs_2016.06/linux64/lib/pylib27
+export LD_LIBRARY_PATH
+/home/cnan/synopsys/vcs_2016.06/linux64/bin/vcsfind_create_index.exe  -z  "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work/simv.daidir/debug_dump/fsearch/./idents_cF6MOG.xml.gz" "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work/simv.daidir/debug_dump/fsearch/./idents_tapi.xml.gz" -o "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work/simv.daidir/debug_dump/fsearch/fsearch.db_tmp"
+\mv "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work/simv.daidir/debug_dump/fsearch/fsearch.db_tmp" "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work/simv.daidir/debug_dump/fsearch/fsearch.db"

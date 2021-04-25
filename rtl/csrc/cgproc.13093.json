@@ -1,0 +1,50 @@
+{
+    "Modules": {
+        "...MASTER...": {},
+        "std": {
+            "Compiled": "Yes",
+            "Compiled Times": 67
+        },
+        "wb_stage": {
+            "Compiled": "Yes",
+            "Compiled Times": 67
+        },
+        "tb": {
+            "Compiled": "Yes",
+            "Compiled Times": 67
+        }
+    },
+    "CompUnits": {
+        "g7hgQ_d": {
+            "checksum": 0,
+            "mod": "tb",
+            "out": "g7hgQ_d.o",
+            "bytes": 295737,
+            "mode": 4,
+            "archive": "archive.66/_13093_archive_1.a"
+        }
+    },
+    "reusePaths": {
+        "amcQw_d": {
+            "icPath": "csrc"
+        },
+        "reYIK_d": {
+            "icPath": "csrc"
+        },
+        "k5Lv0_d": {
+            "icPath": "csrc"
+        }
+    },
+    "ObjArchives": [
+        {
+            "archive": "archive.66/_13093_archive_1.a",
+            "objects": [
+                [
+                    "g7hgQ_d.o",
+                    295737
+                ]
+            ],
+            "size": 295737
+        }
+    ]
+}

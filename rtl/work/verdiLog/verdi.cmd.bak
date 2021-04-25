@@ -1,0 +1,14 @@
+debImport "-sv" "-f" "../if.lst"
+verdiWindowResize -win $_Verdi_1 "57" "17" "1853" "1025"
+nsMsgSelect -range {0 2-2}
+nsMsgAction -tab cmpl -index {0 2}
+nsMsgSelect -range {0 2-2}
+srcHBSelect "if_stage_bench.if_stage.perfetch_fifo" -win $_nTrace1
+srcSetScope -win $_nTrace1 "if_stage_bench.if_stage.perfetch_fifo" -delim "."
+wvCreateWindow
+wvSetPosition -win $_nWave2 {("G1" 0)}
+wvOpenFile -win $_nWave2 \
+           {/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work/verilog.fsdb}
+srcDeselectAll -win $_nTrace1
+srcSelect -win $_nTrace1 -range {16 29 3 1 23 1}
+srcAddSelectedToWave -win $_nTrace1

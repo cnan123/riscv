@@ -1,0 +1,85 @@
+Magic 271485
+Revision Verdi3_L-2016.06-1
+
+; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
+viewPort 0 28 1853 647 172 65
+
+; File list:
+; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
+openDirFile -d / "" "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/verilog.fsdb"
+
+; file time scale:
+; fileTimeScale ### s|ms|us|ns|ps
+
+; signal spacing:
+signalSpacing 5
+
+; windowTimeUnit is used for zoom, cursor & marker
+; waveform viewport range
+zoom 82.177190 204.652811
+cursor 115.000000
+marker 0.000000
+
+; user define markers
+; userMarker time_pos marker_name color linestyle
+; visible top row signal index
+top 5
+; marker line index
+markerPos 27
+
+; event list
+; addEvent event_name event_expression
+; curEvent event_name
+
+
+
+COMPLEX_EVENT_BEGIN
+
+
+COMPLEX_EVENT_END
+
+
+
+; toolbar current search type
+; curSTATUS search_type
+curSTATUS ByChange
+
+
+addGroup "G1"
+activeDirFile "" "/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/verilog.fsdb"
+addSignal -h 15 /tb/riscv_core/if_stage/clk
+addSignal -h 15 -holdScope reset_n
+addSignal -h 15 -holdScope instr_req
+addSignal -h 15 -UNSIGNED -HEX -holdScope instr_addr[31:0]
+addSignal -h 15 -holdScope instr_gnt
+addSignal -h 15 -UNSIGNED -HEX -holdScope instr_rdata[31:0]
+addSignal -h 15 -holdScope instr_err
+addSignal -h 15 -holdScope instr_valid
+addGroup "G2"
+addSignal -h 15 -UNSIGNED -HEX /tb/riscv_core/id_stage/pc_if[31:0]
+addSignal -h 15 -holdScope register_ch0_rd
+addSignal -h 15 -UNSIGNED -HEX -holdScope register_ch0_addr[4:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope register_ch0_data[31:0]
+addSignal -h 15 -holdScope register_ch1_rd
+addSignal -h 15 -UNSIGNED -HEX -holdScope register_ch1_addr[4:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope register_ch1_data[31:0]
+addGroup "G3"
+addSignal -h 15 -UNSIGNED -HEX /tb/riscv_core/if_stage/rdata[31:0]
+addSignal -h 15 -UNSIGNED -HEX /tb/riscv_core/id_stage/instruction[31:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope opcode[6:0]
+addSignal -h 15 -holdScope imm_intr
+addSignal -h 15 -UNSIGNED -HEX -holdScope rs1[4:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope rs2[4:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope rd[4:0]
+addGroup "G4"
+addSignal -h 15 /tb/riscv_core/mem_stage/mem_dest_addr_valid
+addSignal -h 15 /tb/riscv_core/ex_stage/ex_valid
+addSignal -h 15 /tb/riscv_core/mem_stage/dest_addr_valid_pipe
+addSignal -h 15 -holdScope wb_valid
+addSignal -h 15 -UNSIGNED -HEX -holdScope wb_addr[4:0]
+addSignal -h 15 -UNSIGNED -HEX -holdScope wb_data[31:0]
+addGroup "G5"
+
+; getSignalForm Scope Hierarchy Status
+; active file of getSignalForm
+

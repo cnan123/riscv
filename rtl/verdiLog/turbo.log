@@ -1,0 +1,3 @@
+Command Line: /home/cnan/synopsys/verdi_2016.06-1/platform/LINUXAMD64/bin/Novas -sv -f core.lst
+uname(Linux cnan-Aspire-E1-471G 5.4.0-65-generic #73~18.04.1-Ubuntu SMP Tue Jan 19 09:02:24 UTC 2021 x86_64)
+Signal SIGHUP is received. Shutting down...

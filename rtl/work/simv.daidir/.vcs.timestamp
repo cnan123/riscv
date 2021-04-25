@@ -1,0 +1,156 @@
+0 
+48
++itf+/home/cnan/synopsys/vcs_2016.06/linux64/lib/vcsdp.tab
++memcbk
++v2k
++v2k
++vcs+lic+wait
++vcs+lic+wait
++vcsd
++vcsd
++vcsd
++vpi
+-Mamsrun=
+-Masflags=
+-Mcc=gcc-4.8
+-Mcfl= -pipe -fPIC -O -I/home/cnan/synopsys/vcs_2016.06/include
+-Mcplusplus=g++-4.8
+-Mcrt0=
+-Mcrtn=
+-Mcsrc=
+-Mexternalobj=
+-Mldflags= -Wl,-no-as-needed -Wl,-no-as-needed -rdynamic
+-Mobjects= /home/cnan/synopsys/vcs_2016.06/linux64/lib/libvirsim.so /home/cnan/synopsys/vcs_2016.06/linux64/lib/liberrorinf.so /home/cnan/synopsys/vcs_2016.06/linux64/lib/libsnpsmalloc.so /home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/pli.a /home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/pli.a
+-Mout=simv
+-Msaverestoreobj=/home/cnan/synopsys/vcs_2016.06/linux64/lib/vcs_save_restore_new.o
+-Msyslibs=-ldl -lm
+-Mvcsaceobjs=
+-Mxcflags= -pipe -fPIC -I/home/cnan/synopsys/vcs_2016.06/include
+-P
+-P
+-Xnotice=1
+-Xnotice=1
+-Xpiyushb1=0x80
+-Xpiyushb1=0x80
+-debug_access+all+dmptf+bc
+-debug_access+all+dmptf+bc
+-debug_region=cell+lib
+-debug_region=cell+lib
+-f ../if.lst
+-full64
+-full64
+-gen_obj
+-line
+-line
+-picarchive
+-sverilog
+-sverilog
+/home/cnan/synopsys/vcs_2016.06/linux64/bin/vcs1
+/home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/novas.tab
+/home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/novas.tab
+89
+sysc_uni_pwd=/home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/work
+XMODIFIERS=@im=fcitx
+XDG_VTNR=2
+XDG_SESSION_TYPE=x11
+XDG_SESSION_ID=2
+XDG_SESSION_DESKTOP=ubuntu
+XDG_SEAT=seat0
+XDG_RUNTIME_DIR=/run/user/1000
+XDG_MENU_PREFIX=gnome-
+XDG_DATA_DIRS=/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop
+XDG_CURRENT_DESKTOP=ubuntu:GNOME
+XDG_CONFIG_DIRS=/etc/xdg/xdg-ubuntu:/etc/xdg
+XAUTHORITY=/run/user/1000/gdm/Xauthority
+WINDOWPATH=2
+VTE_VERSION=5202
+VMR_MODE_FLAG=64
+VLOG_LIBRARY_PATH=/home/cnan/tree/eagle_tree/script/vlog_aide/lib
+VLOG_AIDE_HOME=/home/cnan/tree/eagle_tree/script/vlog_aide
+VERDI_HOME=/home/cnan/synopsys/verdi_2016.06-1
+VCS_MX_HOME_INTERNAL=1
+VCS_MODE_FLAG=64
+VCS_HOME=/home/cnan/synopsys/vcs_2016.06
+VCS_DEPTH=0
+VCS_ARG_ADDED_FOR_TMP=1
+VCS_ARCH_OVERRIDE=linux
+VCS_ARCH=linux64
+USERNAME=cnan
+UNAME=/bin/uname
+TOOL_HOME=/home/cnan/synopsys/vcs_2016.06/linux64
+TEXTDOMAINDIR=/usr/share/locale/
+TEXTDOMAIN=im-config
+TERMINATOR_UUID=urn:uuid:402ee1bb-b1c2-43a2-8160-70b397f0c17e
+TERMINATOR_DBUS_PATH=/net/tenshu/Terminator2
+TERMINATOR_DBUS_NAME=net.tenshu.Terminator20x1a6021154d881c
+SSH_AUTH_SOCK=/run/user/1000/keyring/ssh
+SSH_AGENT_PID=1718
+SESSION_MANAGER=local/cnan-Aspire-E1-471G:@/tmp/.ICE-unix/1631,unix/cnan-Aspire-E1-471G:/tmp/.ICE-unix/1631
+SCRNAME=vcs
+SCRIPT_NAME=vcs
+RISCV=/opt/riscv_toolchain
+QT_IM_MODULE=fcitx
+QT_ACCESSIBILITY=1
+QT4_IM_MODULE=fcitx
+PROJ_PATH=/home/cnan/tree/eagle_tree/study/riscv/my_riscv
+PAPERSIZE\tDEFAULT=letter
+OVA_UUM=0
+NOVAS_HOME=/home/cnan/synopsys/verdi_2016.06-1
+MANDATORY_PATH=/usr/share/gconf/ubuntu.mandatory.path
+LESSOPEN=| /usr/bin/lesspipe %s
+LESSCLOSE=/usr/bin/lesspipe %s %s
+LC_TIME\tDEFAULT=en_US.UTF-8
+LC_TIME=zh_CN.UTF-8
+LC_TELEPHONE\tDEFAULT=en_US.UTF-8
+LC_TELEPHONE=zh_CN.UTF-8
+LC_PAPER\tDEFAULT=en_US.UTF-8
+LC_PAPER=zh_CN.UTF-8
+LC_NUMERIC\tDEFAULT=en_US.UTF-8
+LC_NUMERIC=zh_CN.UTF-8
+LC_NAME\tDEFAULT=en_US.UTF-8
+LC_NAME=zh_CN.UTF-8
+LC_MONETARY\tDEFAULT=en_US.UTF-8
+LC_MONETARY=zh_CN.UTF-8
+LC_MEASUREMENT\tDEFAULT=en_US.UTF-8
+LC_MEASUREMENT=zh_CN.UTF-8
+LC_IDENTIFICATION\tDEFAULT=en_US.UTF-8
+LC_IDENTIFICATION=zh_CN.UTF-8
+LC_CTYPE=en_US.UTF-8
+LC_COLLATE=en_US.UTF-8
+LC_ALL=C
+LC_ADDRESS\tDEFAULT=en_US.UTF-8
+LC_ADDRESS=zh_CN.UTF-8
+LANG\tDEFAULT=en_US.UTF-8
+LANGUAGE\tDEFAULT=en_US:en
+IM_CONFIG_PHASE=2
+GTK_MODULES=gail:atk-bridge
+GTK_IM_MODULE=fcitx
+GPG_AGENT_INFO=/run/user/1000/gnupg/S.gpg-agent:0:1
+GNOME_SHELL_SESSION_MODE=ubuntu
+GNOME_DESKTOP_SESSION_ID=this-is-deprecated
+GJS_DEBUG_TOPICS=JS ERROR;JS LOG
+GJS_DEBUG_OUTPUT=stderr
+GIO_LAUNCHED_DESKTOP_FILE_PID=2068
+GIO_LAUNCHED_DESKTOP_FILE=/usr/share/applications/terminator.desktop
+GDMSESSION=ubuntu
+DESKTOP_SESSION=ubuntu
+DEFAULTS_PATH=/usr/share/gconf/ubuntu.default.path
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+COLORTERM=truecolor
+CLUTTER_IM_MODULE=xim
+0
+6
+1616932168 /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/if_stage_bench.v
+1616926573 /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/sync_fifo.v
+1616946170 /home/cnan/tree/eagle_tree/study/riscv/my_riscv/rtl/if_stage.sv
+1616916298 ../if.lst
+1468145700 /home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/novas.tab
+1464145466 /home/cnan/synopsys/vcs_2016.06/linux64/lib/vcsdp.tab
+6
+0 
+1464147802 /home/cnan/synopsys/vcs_2016.06/linux64/lib/libvirsim.so
+1464147272 /home/cnan/synopsys/vcs_2016.06/linux64/lib/liberrorinf.so
+1464147248 /home/cnan/synopsys/vcs_2016.06/linux64/lib/libsnpsmalloc.so
+1468144468 /home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/pli.a
+1468144468 /home/cnan/synopsys/verdi_2016.06-1/share/PLI/VCS/LINUX64/pli.a
+1616946183 simv.daidir
