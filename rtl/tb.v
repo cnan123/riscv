@@ -51,7 +51,7 @@ initial begin
     reset_n = 1;
 
     #10000;
-    $finish;
+   // $finish;
 end
 
 always #5 clk<=~clk;
@@ -118,5 +118,13 @@ tb_memory tb_memory(/*AUTOINST*/
 		    .data_addr		(data_addr[31:0]),
 		    .data_wdata		(data_wdata[31:0]),
 		    .data_byteen	(data_byteen[3:0]));
+
+
+`include "monitor.sv"
+monitor my_monitor;
+initial begin
+    my_monitor = new();
+    my_monitor.main;
+end
 
 endmodule

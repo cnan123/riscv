@@ -21,17 +21,17 @@ module data_bypass(
     input [4:0]     id_reg_ch1_addr,
     output [31:0]   id_reg_ch1_data,
 
-    input           ex_dest_valid,
-    input [4:0]     ex_dest_addr,
-    input [31:0]    ex_dest_data,
+    input           ex_dest_we_valid,
+    input [4:0]     ex_dest_we_addr,
+    input [31:0]    ex_dest_we_data,
 
-    input           mem_dest_valid,
-    input [4:0]     mem_dest_addr,
-    input [31:0]    mem_dest_data,
+    input           mem_dest_we_valid,
+    input [4:0]     mem_dest_we_addr,
+    input [31:0]    mem_dest_we_data,
 
-    input           wb_dest_valid,
-    input [4:0]     wb_dest_addr,
-    input [31:0]    wb_dest_data,
+    input           wb_dest_we_valid,
+    input [4:0]     wb_dest_we_addr,
+    input [31:0]    wb_dest_we_data,
 
     output          register_rd_ch0_en,
     output [4:0]    register_rd_ch0_addr,
@@ -62,33 +62,27 @@ logic ch1_wb_bypass;
 //main code
 
 //ch0
-assign ch0_ex_bypass    = ( ex_dest_valid  & (ex_dest_addr[4:0] == id_reg_ch0_addr[4:0]) );
-assign ch0_mem_bypass   = ( mem_dest_valid & (mem_dest_addr[4:0] == id_reg_ch0_addr[4:0]) );
-assign ch0_wb_bypass    = ( wb_dest_valid  & (wb_dest_addr[4:0] == id_reg_ch0_addr[4:0]) );
+assign ch0_ex_bypass    = ( ex_dest_we_valid  & (ex_dest_we_addr[4:0] == id_reg_ch0_addr[4:0]) );
+assign ch0_mem_bypass   = ( mem_dest_we_valid & (mem_dest_we_addr[4:0] == id_reg_ch0_addr[4:0]) );
+assign ch0_wb_bypass    = ( wb_dest_we_valid  & (wb_dest_we_addr[4:0] == id_reg_ch0_addr[4:0]) );
 
 assign register_rd_ch0_en           = id_reg_ch0_rd & ( ~(ch0_ex_bypass | ch0_mem_bypass | ch0_wb_bypass) );
 assign register_rd_ch0_addr[4:0]    = id_reg_ch0_addr[4:0];
 
-assign id_reg_ch0_data[31:0] = (
-            ( {32{ch0_ex_bypass}}   & ex_dest_data[31:0]    ) |
-            ( {32{ch0_mem_bypass}}  & mem_dest_data[31:0]   ) |
-            ( {32{ch0_wb_bypass}}   & wb_dest_data[31:0]    ) |
-            ( register_rd_ch0_data[31:0] )
-    );
+assign id_reg_ch0_data[31:0] =  ch0_ex_bypass   ? ex_dest_we_data[31:0]     :
+                                ch0_mem_bypass  ? mem_dest_we_data[31:0]    :
+                                ch0_wb_bypass   ? wb_dest_we_data[31:0]     : register_rd_ch0_data[31:0];
 
 //ch1
-assign ch1_ex_bypass    = ( ex_dest_valid  & (ex_dest_addr[4:0] == id_reg_ch1_addr[4:0]) );
-assign ch1_mem_bypass   = ( mem_dest_valid & (mem_dest_addr[4:0] == id_reg_ch1_addr[4:0]) );
-assign ch1_wb_bypass    = ( wb_dest_valid  & (wb_dest_addr[4:0] == id_reg_ch1_addr[4:0]) );
+assign ch1_ex_bypass    = ( ex_dest_we_valid  & (ex_dest_we_addr[4:0] == id_reg_ch1_addr[4:0]) );
+assign ch1_mem_bypass   = ( mem_dest_we_valid & (mem_dest_we_addr[4:0] == id_reg_ch1_addr[4:0]) );
+assign ch1_wb_bypass    = ( wb_dest_we_valid  & (wb_dest_we_addr[4:0] == id_reg_ch1_addr[4:0]) );
 
 assign register_rd_ch1_en           = id_reg_ch1_rd & ( ~(ch1_ex_bypass | ch1_mem_bypass | ch1_wb_bypass) );
 assign register_rd_ch1_addr[4:0]    = id_reg_ch1_addr[4:0];
 
-assign id_reg_ch1_data[31:0] = (
-            ( {32{ch1_ex_bypass}}   & ex_dest_data[31:0]    ) |
-            ( {32{ch1_mem_bypass}}  & mem_dest_data[31:0]   ) |
-            ( {32{ch1_wb_bypass}}   & wb_dest_data[31:0]    ) |
-            ( register_rd_ch1_data[31:0] )
-    );
+assign id_reg_ch1_data[31:0] =  ch1_ex_bypass   ? ex_dest_we_data[31:0]     :
+                                ch1_mem_bypass  ? mem_dest_we_data[31:0]    :
+                                ch1_wb_bypass   ? wb_dest_we_data[31:0]     : register_rd_ch1_data[31:0];
 
 endmodule

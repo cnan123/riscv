@@ -63,7 +63,7 @@ for(n=0;n<NUM;n=n+1)begin
         assign grant[n] = grant[n-1] ? 1'b0 : masked_req[n];
     end
 
-    if(n==NUM)begin
+    if(n==NUM-1)begin
         assign next_pri[n] = 1'b1;
     end else begin
         assign next_pri[n] = grant[n] ? 1'b0 : next_pri[n+1]; 
