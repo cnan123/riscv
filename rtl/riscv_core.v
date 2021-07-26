@@ -44,69 +44,102 @@ module riscv_core(
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
 // Beginning of automatic wires (for undeclared instantiated-module outputs)
+logic			alu_en_ex;		// From id_stage of id_stage.v
+logic			branch_ex;		// From id_stage of id_stage.v
 logic			branch_taken;		// From ex_stage of ex_stage.v
 logic [31:0]		branch_target_addr;	// From ex_stage of ex_stage.v
-logic [ALU_NUM-1:0]	ex_alu_op;		// From id_stage of id_stage.v
-logic [31:0]		ex_alu_operate_a;	// From id_stage of id_stage.v
-logic [31:0]		ex_alu_operate_b;	// From id_stage of id_stage.v
-logic [31:0]		ex_alu_operate_c;	// From id_stage of id_stage.v
-logic [4:0]		ex_dest_addr;		// From id_stage of id_stage.v
-logic [4:0]		ex_dest_we_addr;	// From ex_stage of ex_stage.v
-logic [31:0]		ex_dest_we_data;	// From ex_stage of ex_stage.v
-logic			ex_dest_we_valid;	// From ex_stage of ex_stage.v
-logic			ex_jump;		// From id_stage of id_stage.v
-logic			ex_lsu_valid;		// From id_stage of id_stage.v
-logic [2:0]		ex_lsu_width_type;	// From id_stage of id_stage.v
-logic			ex_lsu_wr_type;		// From id_stage of id_stage.v
-logic			ex_stage_ready;		// From ex_stage of ex_stage.v
-logic			flush_id;		// From controller of controller.v
-logic			flush_if;		// From controller of controller.v
-logic [4:0]		id_reg_ch0_addr;	// From id_stage of id_stage.v
-logic [31:0]		id_reg_ch0_data;	// From data_bypass of data_bypass.v
-logic			id_reg_ch0_rd;		// From id_stage of id_stage.v
-logic [4:0]		id_reg_ch1_addr;	// From id_stage of id_stage.v
-logic [31:0]		id_reg_ch1_data;	// From data_bypass of data_bypass.v
-logic			id_reg_ch1_rd;		// From id_stage of id_stage.v
-logic [31:0]		instruction;		// From if_stage of if_stage.v
-logic			instruction_value;	// From if_stage of if_stage.v
+logic [11:0]		csr_addr_ex;		// From id_stage of id_stage.v
+logic			csr_en_ex;		// From id_stage of id_stage.v
+logic [1:0]		csr_op_ex;		// From id_stage of id_stage.v
+logic [31:0]		csr_wdata_ex;		// From id_stage of id_stage.v
+logic [3:0]		data_be;		// From mem_stage of mem_stage.v
+logic [5:0]		exc_cause_ex;		// From id_stage of id_stage.v
+logic [5:0]		exc_cause_mem;		// From ex_stage of ex_stage.v
+logic [5:0]		exc_cause_wb;		// From mem_stage of mem_stage.v
+logic			exc_taken_ex;		// From id_stage of id_stage.v
+logic			exc_taken_mem;		// From ex_stage of ex_stage.v
+logic			exc_taken_wb;		// From mem_stage of mem_stage.v
+logic [31:0]		exc_tval_ex;		// From id_stage of id_stage.v
+logic [31:0]		exc_tval_mem;		// From ex_stage of ex_stage.v
+logic [31:0]		exc_tval_wb;		// From mem_stage of mem_stage.v
+logic			flush_D;		// From controller of controller.v
+logic			flush_E;		// From controller of controller.v
+logic			flush_F;		// From controller of controller.v
+logic			flush_M;		// From controller of controller.v
+logic			flush_W;		// From controller of controller.v
+logic [4:0]		forward_ex_addr;	// From ex_stage of ex_stage.v
+logic			forward_ex_en;		// From ex_stage of ex_stage.v
+logic [31:0]		forward_ex_wdata;	// From ex_stage of ex_stage.v
+logic [4:0]		forward_mem_addr;	// From mem_stage of mem_stage.v
+logic			forward_mem_en;		// From mem_stage of mem_stage.v
+logic [31:0]		forward_mem_wdata;	// From mem_stage of mem_stage.v
+logic			instr_fetch_error;	// From if_stage of if_stage.v
+logic [31:0]		instr_payload_id;	// From if_stage of if_stage.v
+logic			instr_value_id;		// From if_stage of if_stage.v
+logic			irq_ack;		// From id_stage of id_stage.v, ...
 logic			is_compress_intr;	// From if_stage of if_stage.v
+logic			jump_ex;		// From id_stage of id_stage.v
+logic			jump_taken;		// From ex_stage of ex_stage.v
 logic [31:0]		jump_target_addr;	// From ex_stage of ex_stage.v
-logic			load_instr_in_ex;	// From ex_stage of ex_stage.v
-logic			load_instr_in_mem;	// From mem_stage of mem_stage.v
-logic [4:0]		mem_dest_we_addr;	// From ex_stage of ex_stage.v
-logic [31:0]		mem_dest_we_data;	// From ex_stage of ex_stage.v
-logic			mem_dest_we_valid;	// From ex_stage of ex_stage.v
-logic [31:0]		mem_lsu_addr;		// From ex_stage of ex_stage.v
-logic			mem_lsu_valid;		// From ex_stage of ex_stage.v
-logic [31:0]		mem_lsu_wdata;		// From ex_stage of ex_stage.v
-logic [2:0]		mem_lsu_width_type;	// From ex_stage of ex_stage.v
-logic			mem_lsu_wr_type;	// From ex_stage of ex_stage.v
-logic			mem_stage_ready;	// From mem_stage of mem_stage.v
+logic [31:0]		lsu_addr_mem;		// From ex_stage of ex_stage.v
+logic			lsu_en_ex;		// From id_stage of id_stage.v
+logic			lsu_en_mem;		// From ex_stage of ex_stage.v
+logic			lsu_en_wb;		// From mem_stage of mem_stage.v
+logic			lsu_err;		// From mem_stage of mem_stage.v
+logic [31:0]		lsu_rdata;		// From mem_stage of mem_stage.v
+logic			lsu_valid;		// From mem_stage of mem_stage.v
+logic [31:0]		lsu_wdata_mem;		// From ex_stage of ex_stage.v
 logic [31:0]		pc_ex;			// From ex_stage of ex_stage.v
 logic [31:0]		pc_id;			// From id_stage of id_stage.v
 logic [31:0]		pc_if;			// From if_stage of if_stage.v
-logic [4:0]		rd_ch0_addr;		// From data_bypass of data_bypass.v
-logic [31:0]		rd_ch0_data;		// From register_file of register_file.v
-logic			rd_ch0_en;		// From data_bypass of data_bypass.v
-logic [4:0]		rd_ch1_addr;		// From data_bypass of data_bypass.v
-logic [31:0]		rd_ch1_data;		// From register_file of register_file.v
-logic			rd_ch1_en;		// From data_bypass of data_bypass.v
+logic [4:0]		rd_wr_addr_ex;		// From id_stage of id_stage.v
+logic [4:0]		rd_wr_addr_mem;		// From ex_stage of ex_stage.v
+logic [4:0]		rd_wr_addr_wb;		// From mem_stage of mem_stage.v
+logic [31:0]		rd_wr_data_mem;		// From ex_stage of ex_stage.v
+logic [31:0]		rd_wr_data_wb;		// From mem_stage of mem_stage.v
+logic			rd_wr_en_ex;		// From id_stage of id_stage.v
+logic			rd_wr_en_mem;		// From ex_stage of ex_stage.v
+logic			rd_wr_en_wb;		// From mem_stage of mem_stage.v
+logic			ready_ex;		// From ex_stage of ex_stage.v
+logic			ready_id;		// From id_stage of id_stage.v
+logic			ready_mem;		// From mem_stage of mem_stage.v
+logic			ready_wb;		// From wb_stage of wb_stage.v
+logic [4:0]		rf_wr_addr;		// From wb_stage of wb_stage.v
+logic [31:0]		rf_wr_data;		// From wb_stage of wb_stage.v
+logic			rf_wr_en;		// From wb_stage of wb_stage.v
+logic [31:0]		set_pc;			// From controller of controller.v
 logic			set_pc_valid;		// From controller of controller.v
-logic			stall_ex_stage;		// From controller of controller.v
-logic			stall_id_stage;		// From controller of controller.v
-logic			stall_if_stage;		// From controller of controller.v
-logic			stall_mem_stage;	// From controller of controller.v
-logic			wb_stage_ready;		// From mem_stage of mem_stage.v
-logic [4:0]		wb_we_addr;		// From mem_stage of mem_stage.v
-logic [31:0]		wb_we_data;		// From mem_stage of mem_stage.v
-logic			wb_we_valid;		// From mem_stage of mem_stage.v
+logic [31:0]		src_a_ex;		// From id_stage of id_stage.v
+logic [31:0]		src_b_ex;		// From id_stage of id_stage.v
+logic [31:0]		src_c_ex;		// From id_stage of id_stage.v
+logic			stall_D;		// From controller of controller.v
+logic			stall_E;		// From controller of controller.v
+logic			stall_F;		// From controller of controller.v
+logic			stall_M;		// From controller of controller.v
+logic			stall_W;		// From controller of controller.v
+logic			wb_data_mux;		// From mem_stage of mem_stage.v
 // End of automatics
 //////////////////////////////////////////////
 
-logic [31:0]    set_pc;
-
 //////////////////////////////////////////////
 //main code
+
+//TODO
+logic irq_req;
+logic [4:0]irq_id;
+logic debug_req;
+
+assign irq_req = 1'b0;
+assign debug_req = 1'b0;
+assign irq_id = 'd0;
+
+import riscv_pkg::*;
+
+alu_op_e            alu_op_ex;
+lsu_op_e            lsu_op_ex;
+lsu_dtype_e         lsu_dtype_ex;
+lsu_op_e            lsu_op_mem;
+lsu_dtype_e         lsu_dtype_mem;
 
 // Local Variables:                                                                 
 // verilog-auto-inst-param-value:t                                                  
@@ -124,8 +157,9 @@ if_stage if_stage(
     /*AUTOINST*/
 		  // Outputs
 		  .pc_if		(pc_if[31:0]),
-		  .id_instruction	(instruction[31:0]),	 // Templated
-		  .id_instruction_value	(instruction_value),	 // Templated
+		  .instr_payload_id	(instr_payload_id[31:0]),
+		  .instr_value_id	(instr_value_id),
+		  .instr_fetch_error	(instr_fetch_error),
 		  .is_compress_intr	(is_compress_intr),
 		  .instr_req		(instr_req),
 		  .instr_addr		(instr_addr[31:0]),
@@ -134,8 +168,9 @@ if_stage if_stage(
 		  .reset_n		(reset_n),
 		  .boot_addr		(boot_addr[31:0]),
 		  .fetch_enable		(fetch_enable),
-		  .flush_if_id		(flush_if),		 // Templated
-		  .stall_if_stage	(stall_if_stage),
+		  .flush_F		(flush_F),
+		  .stall_F		(stall_F),
+		  .ready_id		(ready_id),
 		  .set_pc_valid		(set_pc_valid),
 		  .set_pc		(set_pc[31:0]),
 		  .instr_gnt		(instr_gnt),
@@ -144,216 +179,213 @@ if_stage if_stage(
 		  .instr_valid		(instr_valid));
 
 /* id_stage AUTO_TEMPLATE(
-    .register_\(.*\)     (id_reg_\1[]),
-		  .flush_if_id		(flush_id),
-    .id_stage_ready     (id_stage_ready),
+    .instr_payload  (instr_payload_id),
+    .instr_value    (instr_value_id),
+    .rf_wr_wb_en	(rf_wr_en),
+	.rf_wr_wb_addr	(rf_wr_addr[]),
+	.rf_wr_wb_data	(rf_wr_data[]),
 );
 */
 id_stage id_stage(
     /*AUTOINST*/
+		  // Interfaces
+		  .alu_op_ex		(alu_op_ex),
+		  .lsu_op_ex		(lsu_op_ex),
+		  .lsu_dtype_ex		(lsu_dtype_ex),
 		  // Outputs
-		  .register_ch0_rd	(id_reg_ch0_rd),	 // Templated
-		  .register_ch0_addr	(id_reg_ch0_addr[4:0]),	 // Templated
-		  .register_ch1_rd	(id_reg_ch1_rd),	 // Templated
-		  .register_ch1_addr	(id_reg_ch1_addr[4:0]),	 // Templated
-		  .ex_alu_op		(ex_alu_op[ALU_NUM-1:0]),
-		  .ex_alu_operate_a	(ex_alu_operate_a[31:0]),
-		  .ex_alu_operate_b	(ex_alu_operate_b[31:0]),
-		  .ex_alu_operate_c	(ex_alu_operate_c[31:0]),
-		  .ex_jump		(ex_jump),
-		  .ex_dest_addr		(ex_dest_addr[4:0]),
-		  .ex_lsu_valid		(ex_lsu_valid),
-		  .ex_lsu_wr_type	(ex_lsu_wr_type),
-		  .ex_lsu_width_type	(ex_lsu_width_type[2:0]),
+		  .ready_id		(ready_id),
+		  .irq_ack		(irq_ack),
+		  .jump_ex		(jump_ex),
+		  .branch_ex		(branch_ex),
+		  .alu_en_ex		(alu_en_ex),
+		  .src_a_ex		(src_a_ex[31:0]),
+		  .src_b_ex		(src_b_ex[31:0]),
+		  .src_c_ex		(src_c_ex[31:0]),
+		  .lsu_en_ex		(lsu_en_ex),
+		  .csr_en_ex		(csr_en_ex),
+		  .csr_op_ex		(csr_op_ex[1:0]),
+		  .csr_addr_ex		(csr_addr_ex[11:0]),
+		  .csr_wdata_ex		(csr_wdata_ex[31:0]),
+		  .rd_wr_en_ex		(rd_wr_en_ex),
+		  .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
+		  .exc_taken_ex		(exc_taken_ex),
+		  .exc_cause_ex		(exc_cause_ex[5:0]),
+		  .exc_tval_ex		(exc_tval_ex[31:0]),
 		  .pc_id		(pc_id[31:0]),
 		  // Inputs
 		  .clk			(clk),
 		  .reset_n		(reset_n),
 		  .pc_if		(pc_if[31:0]),
-		  .is_compress_instr	(is_compress_instr),
-		  .instruction		(instruction[31:0]),
-		  .instruction_value	(instruction_value),
-		  .flush_if_id		(flush_id),		 // Templated
-		  .stall_id_stage	(stall_id_stage),
-		  .register_ch0_data	(id_reg_ch0_data[31:0]), // Templated
-		  .register_ch1_data	(id_reg_ch1_data[31:0])); // Templated
+		  .instr_payload	(instr_payload_id),	 // Templated
+		  .instr_value		(instr_value_id),	 // Templated
+		  .instr_fetch_error	(instr_fetch_error),
+		  .stall_D		(stall_D),
+		  .flush_D		(flush_D),
+		  .ready_ex		(ready_ex),
+		  .irq_req		(irq_req),
+		  .irq_id		(irq_id[4:0]),
+		  .irq_taken_wb		(irq_taken_wb),
+		  .debug_req		(debug_req),
+		  .forward_ex_en	(forward_ex_en),
+		  .forward_ex_addr	(forward_ex_addr[4:0]),
+		  .forward_ex_wdata	(forward_ex_wdata[31:0]),
+		  .forward_mem_en	(forward_mem_en),
+		  .forward_mem_addr	(forward_mem_addr[4:0]),
+		  .forward_mem_wdata	(forward_mem_wdata[31:0]),
+		  .rf_wr_wb_en		(rf_wr_en),		 // Templated
+		  .rf_wr_wb_addr	(rf_wr_addr[4:0]),	 // Templated
+		  .rf_wr_wb_data	(rf_wr_data[31:0]));	 // Templated
 
 /* ex_stage AUTO_TEMPLATE(
-    .alu_operator   (ex_alu_op[]),
-    .alu_operate_a  (ex_alu_operate_a[]),
-    .alu_operate_b  (ex_alu_operate_b[]),
-    .alu_operate_c  (ex_alu_operate_c[]),
-    .jump           (ex_jump),
-	.branch_op		(ex_branch_op[]),
-	.branch_offset	(ex_branch_offset[]),
-    .ex_dest_addr   (ex_dest_addr[]),
-   );*/
+      );*/
 ex_stage ex_stage(
     /*AUTOINST*/
+		  // Interfaces
+		  .alu_op_ex		(alu_op_ex),
+		  .lsu_op_ex		(lsu_op_ex),
+		  .lsu_dtype_ex		(lsu_dtype_ex),
+		  .lsu_op_mem		(lsu_op_mem),
+		  .lsu_dtype_mem	(lsu_dtype_mem),
 		  // Outputs
-		  .ex_stage_ready	(ex_stage_ready),
-		  .load_instr_in_ex	(load_instr_in_ex),
+		  .ready_ex		(ready_ex),
 		  .pc_ex		(pc_ex[31:0]),
-		  .ex_dest_we_valid	(ex_dest_we_valid),
-		  .ex_dest_we_addr	(ex_dest_we_addr[4:0]),
-		  .ex_dest_we_data	(ex_dest_we_data[31:0]),
-		  .mem_dest_we_valid	(mem_dest_we_valid),
-		  .mem_dest_we_addr	(mem_dest_we_addr[4:0]),
-		  .mem_dest_we_data	(mem_dest_we_data[31:0]),
-		  .branch_taken		(branch_taken),
-		  .branch_target_addr	(branch_target_addr[31:0]),
 		  .jump_target_addr	(jump_target_addr[31:0]),
-		  .mem_lsu_valid	(mem_lsu_valid),
-		  .mem_lsu_wr_type	(mem_lsu_wr_type),
-		  .mem_lsu_width_type	(mem_lsu_width_type[2:0]),
-		  .mem_lsu_addr		(mem_lsu_addr[31:0]),
-		  .mem_lsu_wdata	(mem_lsu_wdata[31:0]),
+		  .jump_taken		(jump_taken),
+		  .branch_target_addr	(branch_target_addr[31:0]),
+		  .branch_taken		(branch_taken),
+		  .lsu_en_mem		(lsu_en_mem),
+		  .lsu_addr_mem		(lsu_addr_mem[31:0]),
+		  .lsu_wdata_mem	(lsu_wdata_mem[31:0]),
+		  .exc_taken_mem	(exc_taken_mem),
+		  .exc_cause_mem	(exc_cause_mem[5:0]),
+		  .exc_tval_mem		(exc_tval_mem[31:0]),
+		  .rd_wr_en_mem		(rd_wr_en_mem),
+		  .rd_wr_addr_mem	(rd_wr_addr_mem[4:0]),
+		  .rd_wr_data_mem	(rd_wr_data_mem[31:0]),
+		  .forward_ex_en	(forward_ex_en),
+		  .forward_ex_addr	(forward_ex_addr[4:0]),
+		  .forward_ex_wdata	(forward_ex_wdata[31:0]),
 		  // Inputs
 		  .clk			(clk),
 		  .reset_n		(reset_n),
-		  .stall_ex_stage	(stall_ex_stage),
+		  .stall_E		(stall_E),
+		  .ready_mem		(ready_mem),
 		  .pc_id		(pc_id[31:0]),
-		  .alu_operator		(ex_alu_op[ALU_NUM-1:0]), // Templated
-		  .alu_operate_a	(ex_alu_operate_a[31:0]), // Templated
-		  .alu_operate_b	(ex_alu_operate_b[31:0]), // Templated
-		  .alu_operate_c	(ex_alu_operate_c[31:0]), // Templated
-		  .jump			(ex_jump),		 // Templated
-		  .ex_dest_addr		(ex_dest_addr[4:0]),	 // Templated
-		  .ex_lsu_valid		(ex_lsu_valid),
-		  .ex_lsu_wr_type	(ex_lsu_wr_type),
-		  .ex_lsu_width_type	(ex_lsu_width_type[2:0]));
+		  .jump_ex		(jump_ex),
+		  .branch_ex		(branch_ex),
+		  .alu_en_ex		(alu_en_ex),
+		  .src_a_ex		(src_a_ex[31:0]),
+		  .src_b_ex		(src_b_ex[31:0]),
+		  .src_c_ex		(src_c_ex[31:0]),
+		  .lsu_en_ex		(lsu_en_ex),
+		  .csr_en_ex		(csr_en_ex),
+		  .csr_op_ex		(csr_op_ex[1:0]),
+		  .csr_addr_ex		(csr_addr_ex[11:0]),
+		  .csr_wdata_ex		(csr_wdata_ex[31:0]),
+		  .rd_wr_en_ex		(rd_wr_en_ex),
+		  .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
+		  .exc_taken_ex		(exc_taken_ex),
+		  .exc_cause_ex		(exc_cause_ex[5:0]),
+		  .exc_tval_ex		(exc_tval_ex[31:0]));
 
 /*mem_stage AUTO_TEMPLATE(
-            .lsu_valid		(mem_lsu_valid),
-		    .lsu_wr_type	(mem_lsu_wr_type),
-		    .lsu_width_type	(mem_lsu_width_type[1:0]),
-		    .lsu_addr		(mem_lsu_addr[31:0]),
-		    .lsu_wdata		(mem_lsu_wdata[31:0]),
-            .data_be		(data_byteen[3:0]),
 );*/
 mem_stage mem_stage(
     /*AUTOINST*/
+		    // Interfaces
+		    .lsu_op_mem		(lsu_op_mem),
+		    .lsu_dtype_mem	(lsu_dtype_mem),
 		    // Outputs
-		    .wb_we_valid	(wb_we_valid),
-		    .wb_we_addr		(wb_we_addr[4:0]),
-		    .wb_we_data		(wb_we_data[31:0]),
-		    .mem_stage_ready	(mem_stage_ready),
-		    .wb_stage_ready	(wb_stage_ready),
-		    .load_instr_in_mem	(load_instr_in_mem),
+		    .ready_mem		(ready_mem),
+		    .forward_mem_en	(forward_mem_en),
+		    .forward_mem_addr	(forward_mem_addr[4:0]),
+		    .forward_mem_wdata	(forward_mem_wdata[31:0]),
+		    .rd_wr_en_wb	(rd_wr_en_wb),
+		    .rd_wr_addr_wb	(rd_wr_addr_wb[4:0]),
+		    .rd_wr_data_wb	(rd_wr_data_wb[31:0]),
+		    .lsu_en_wb		(lsu_en_wb),
+		    .wb_data_mux	(wb_data_mux),
+		    .lsu_rdata		(lsu_rdata[31:0]),
+		    .lsu_valid		(lsu_valid),
+		    .lsu_err		(lsu_err),
+		    .exc_taken_wb	(exc_taken_wb),
+		    .exc_cause_wb	(exc_cause_wb[5:0]),
+		    .exc_tval_wb	(exc_tval_wb[31:0]),
 		    .data_req		(data_req),
 		    .data_wr		(data_wr),
 		    .data_addr		(data_addr[31:0]),
 		    .data_wdata		(data_wdata[31:0]),
-		    .data_be		(data_byteen[3:0]),	 // Templated
+		    .data_be		(data_be[3:0]),
 		    // Inputs
 		    .clk		(clk),
 		    .reset_n		(reset_n),
-		    .mem_dest_we_valid	(mem_dest_we_valid),
-		    .mem_dest_we_addr	(mem_dest_we_addr[4:0]),
-		    .mem_dest_we_data	(mem_dest_we_data[31:0]),
-		    .lsu_valid		(mem_lsu_valid),	 // Templated
-		    .lsu_wr_type	(mem_lsu_wr_type),	 // Templated
-		    .lsu_width_type	(mem_lsu_width_type[1:0]), // Templated
-		    .lsu_addr		(mem_lsu_addr[31:0]),	 // Templated
-		    .lsu_wdata		(mem_lsu_wdata[31:0]),	 // Templated
-		    .stall_mem_stage	(stall_mem_stage),
+		    .rd_wr_en_mem	(rd_wr_en_mem),
+		    .rd_wr_addr_mem	(rd_wr_addr_mem[4:0]),
+		    .rd_wr_data_mem	(rd_wr_data_mem[31:0]),
+		    .lsu_en_mem		(lsu_en_mem),
+		    .lsu_addr_mem	(lsu_addr_mem[31:0]),
+		    .lsu_wdata_mem	(lsu_wdata_mem[31:0]),
+		    .exc_taken_mem	(exc_taken_mem),
+		    .exc_cause_mem	(exc_cause_mem[5:0]),
+		    .exc_tval_mem	(exc_tval_mem[31:0]),
+		    .flush_M		(flush_M),
+		    .ready_wb		(ready_wb),
 		    .data_gnt		(data_gnt),
 		    .data_rdata		(data_rdata[31:0]),
-		    .data_valid		(data_valid));
+		    .data_valid		(data_valid),
+		    .data_error		(data_error));
 
-/*register_file AUTO_TEMPLATE (
-    .wr_ch0_en  (wb_we_valid[]),
-    .wr_ch0_addr (wb_we_addr[]),
-    .wr_ch0_data    (wb_we_data[]),
-);*/
-register_file register_file(
+wb_stage wb_stage(
     /*AUTOINST*/
-			    // Outputs
-			    .rd_ch0_data	(rd_ch0_data[31:0]),
-			    .rd_ch1_data	(rd_ch1_data[31:0]),
-			    // Inputs
-			    .clk		(clk),
-			    .reset_n		(reset_n),
-			    .rd_ch0_en		(rd_ch0_en),
-			    .rd_ch0_addr	(rd_ch0_addr[4:0]),
-			    .rd_ch1_en		(rd_ch1_en),
-			    .rd_ch1_addr	(rd_ch1_addr[4:0]),
-			    .wr_ch0_en		(wb_we_valid),	 // Templated
-			    .wr_ch0_addr	(wb_we_addr[4:0]), // Templated
-			    .wr_ch0_data	(wb_we_data[31:0])); // Templated
-
-/*data_bypass AUTO_TEMPLATE(
-    .register_\(.*\)     (\1[]),
-    .wb_dest_\(.*\)         (wb_\1[]),
-);*/
-data_bypass data_bypass(
-    /*AUTOINST*/
-			// Outputs
-			.id_reg_ch0_data(id_reg_ch0_data[31:0]),
-			.id_reg_ch1_data(id_reg_ch1_data[31:0]),
-			.register_rd_ch0_en(rd_ch0_en),		 // Templated
-			.register_rd_ch0_addr(rd_ch0_addr[4:0]), // Templated
-			.register_rd_ch1_en(rd_ch1_en),		 // Templated
-			.register_rd_ch1_addr(rd_ch1_addr[4:0]), // Templated
-			// Inputs
-			.clk		(clk),
-			.reset_n	(reset_n),
-			.id_reg_ch0_rd	(id_reg_ch0_rd),
-			.id_reg_ch0_addr(id_reg_ch0_addr[4:0]),
-			.id_reg_ch1_rd	(id_reg_ch1_rd),
-			.id_reg_ch1_addr(id_reg_ch1_addr[4:0]),
-			.ex_dest_we_valid(ex_dest_we_valid),
-			.ex_dest_we_addr(ex_dest_we_addr[4:0]),
-			.ex_dest_we_data(ex_dest_we_data[31:0]),
-			.mem_dest_we_valid(mem_dest_we_valid),
-			.mem_dest_we_addr(mem_dest_we_addr[4:0]),
-			.mem_dest_we_data(mem_dest_we_data[31:0]),
-			.wb_dest_we_valid(wb_we_valid),		 // Templated
-			.wb_dest_we_addr(wb_we_addr[4:0]),	 // Templated
-			.wb_dest_we_data(wb_we_data[31:0]),	 // Templated
-			.register_rd_ch0_data(rd_ch0_data[31:0]), // Templated
-			.register_rd_ch1_data(rd_ch1_data[31:0])); // Templated
-
+		  // Outputs
+		  .ready_wb		(ready_wb),
+		  .rf_wr_en		(rf_wr_en),
+		  .rf_wr_addr		(rf_wr_addr[4:0]),
+		  .rf_wr_data		(rf_wr_data[31:0]),
+		  // Inputs
+		  .clk			(clk),
+		  .reset_n		(reset_n),
+		  .rd_wr_en_wb		(rd_wr_en_wb),
+		  .rd_wr_addr_wb	(rd_wr_addr_wb[4:0]),
+		  .rd_wr_data_wb	(rd_wr_data_wb[31:0]),
+		  .lsu_en_wb		(lsu_en_wb),
+		  .wb_data_mux		(wb_data_mux),
+		  .lsu_rdata		(lsu_rdata[31:0]),
+		  .lsu_valid		(lsu_valid),
+		  .flush_W		(flush_W));
 
 /*controller AUTO_TEMPLATE(
-    .clk (clk),
-    .jump   (ex_jump),
-    .read_a_in_id	(id_reg_ch0_rd),
-	.read_a_addr	(id_reg_ch0_addr[]),
-	.read_b_in_id	(id_reg_ch1_rd),
-	.read_b_addr	(id_reg_ch1_addr[]),
 );*/
 controller controller(/*AUTOINST*/
 		      // Outputs
 		      .set_pc_valid	(set_pc_valid),
 		      .set_pc		(set_pc[31:0]),
-		      .stall_if_stage	(stall_if_stage),
-		      .stall_id_stage	(stall_id_stage),
-		      .stall_ex_stage	(stall_ex_stage),
-		      .stall_mem_stage	(stall_mem_stage),
-		      .flush_if		(flush_if),
-		      .flush_id		(flush_id),
+		      .flush_F		(flush_F),
+		      .flush_D		(flush_D),
+		      .flush_E		(flush_E),
+		      .flush_M		(flush_M),
+		      .flush_W		(flush_W),
+		      .stall_F		(stall_F),
+		      .stall_D		(stall_D),
+		      .stall_E		(stall_E),
+		      .stall_M		(stall_M),
+		      .stall_W		(stall_W),
+		      .irq_ack		(irq_ack),
 		      // Inputs
-		      .clk		(clk),			 // Templated
+		      .clk		(clk),
 		      .reset_n		(reset_n),
-		      .read_a_in_id	(id_reg_ch0_rd),	 // Templated
-		      .read_a_addr	(id_reg_ch0_addr[4:0]),	 // Templated
-		      .read_b_in_id	(id_reg_ch1_rd),	 // Templated
-		      .read_b_addr	(id_reg_ch1_addr[4:0]),	 // Templated
-		      .load_instr_in_ex	(load_instr_in_ex),
-		      .ex_dest_we_addr	(ex_dest_we_addr[4:0]),
-		      .load_instr_in_mem(load_instr_in_mem),
-		      .mem_dest_we_addr	(mem_dest_we_addr[4:0]),
-		      .jump		(ex_jump),		 // Templated
-		      .jump_target_addr	(jump_target_addr[31:0]),
+		      .jump		(jump),
 		      .branch_taken	(branch_taken),
+		      .fence		(fence),
+		      .jump_target_addr	(jump_target_addr[31:0]),
 		      .branch_target_addr(branch_target_addr[31:0]),
-		      .ex_stage_ready	(ex_stage_ready),
-		      .mem_stage_ready	(mem_stage_ready),
-		      .wb_stage_ready	(wb_stage_ready));
+		      .pc_if		(pc_if[31:0]),
+		      .lsu_valid	(lsu_valid),
+		      .lsu_err		(lsu_err),
+		      .exc_taken_wb	(exc_taken_wb),
+		      .exc_cause_wb	(exc_cause_wb[5:0]),
+		      .exc_tval_wb	(exc_tval_wb[31:0]));
 
-
-//TODO
 
 
 endmodule

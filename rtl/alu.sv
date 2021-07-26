@@ -10,7 +10,7 @@
 //================================================================
 import riscv_pkg::*;
 module alu (
-        input logic     [ALU_NUM-1:0]   operator,
+        input alu_op_e                  operator,
         input logic     [31:0]          operator_a,
         input logic     [31:0]          operator_b,
 
@@ -51,7 +51,6 @@ logic           cmp_result;
 logic   [31:0]  compare_result;
 
 logic           logic_op;
-logic   [31:0]  logic_result;
 
 logic           shift_op;
 logic           shift_left;

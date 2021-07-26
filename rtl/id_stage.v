@@ -11,369 +11,399 @@
 
 import riscv_pkg::*;
 
-module id_stage(/*AUTOARG*/
+module id_stage(
     input                       clk,
     input                       reset_n,
+    
+    //if stsge
+    input [31:0]                pc_if,
+    input [31:0]                instr_payload,
+    input                       instr_value,
+    input                       instr_fetch_error, //PMP or Bus error respone
 
-    input   [31:0]              pc_if,
-    input                       is_compress_instr,
-    input   [31:0]              instruction,
-    input                       instruction_value,
+    //pipeline control
+    input                       stall_D,
+    input                       flush_D,
+    input                       ready_ex,
+    output                      ready_id,
 
-    //controller
-    input                       flush_if_id,
-    input                       stall_id_stage,
+    //intr
+    input                       irq_req,
+    input [4:0]                 irq_id,
+    input                       irq_taken_wb,
+    output                      irq_ack,
 
-    //register access
-    output                      register_ch0_rd,
-    output  [4:0]               register_ch0_addr,
-    input   [31:0]              register_ch0_data,
+    input                       debug_req, //TODO
 
-    output                      register_ch1_rd,
-    output  [4:0]               register_ch1_addr,
-    input   [31:0]              register_ch1_data,
+    //write back
+    input                       forward_ex_en,
+    input [4:0]                 forward_ex_addr,
+    input [31:0]                forward_ex_wdata,
+    input                       forward_mem_en,
+    input [4:0]                 forward_mem_addr,
+    input [31:0]                forward_mem_wdata,
+    input                       rf_wr_wb_en,
+    input [4:0]                 rf_wr_wb_addr,
+    input [31:0]                rf_wr_wb_data,
 
-    //ex stage
+    output logic                jump_ex,
+    output logic                branch_ex,
     //alu
-    output  logic [ALU_NUM-1:0] ex_alu_op,
-    output  logic [31:0]        ex_alu_operate_a,
-    output  logic [31:0]        ex_alu_operate_b,
-    output  logic [31:0]        ex_alu_operate_c,
-    output  logic               ex_jump,
+    output logic                alu_en_ex,
+    output alu_op_e             alu_op_ex,
+    output logic [31:0]         src_a_ex,         
+    output logic [31:0]         src_b_ex,         
+    output logic [31:0]         src_c_ex,         
     
-    output  logic [4:0]         ex_dest_addr,
-    
-    //mul
-    //div
-    //lsu
-    output  logic               ex_lsu_valid,
-    output  logic               ex_lsu_wr_type,
-    output  logic [2:0]         ex_lsu_width_type,
+    output logic                lsu_en_ex,  
+    output lsu_op_e             lsu_op_ex,
+    output lsu_dtype_e          lsu_dtype_ex,
+
+    output logic                csr_en_ex,
+    output logic [1:0]          csr_op_ex,
+    output logic [11:0]         csr_addr_ex,
+    output logic [31:0]         csr_wdata_ex,
+
+    output logic                rd_wr_en_ex,
+    output logic [4:0]          rd_wr_addr_ex,
+
+    output logic                exc_taken_ex,
+    output logic [5:0]          exc_cause_ex,
+    output logic [31:0]         exc_tval_ex,
 
     output logic [31:0]         pc_id
 );
 
 // Local Variables:
+// verilog-auto-inst-param-value:t                                                  
 // verilog-library-directories:("." )
 // End:
 
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
-//////////////////////////////////////////////
 
-logic [6:0]     opcode;
-logic [2:0]     funct3;
-logic [7:0]     funct7;
-logic [4:0]     rs1;
-logic [4:0]     rs2;
-logic [4:0]     rd;
-logic [31:0]    imm_itype;
+src_a_mux_e     src_a_mux;
+src_b_mux_e     src_b_mux;
+src_c_mux_e     src_c_mux;
+
+logic [31:0]    src_a_id;
+logic [31:0]    src_b_id;
+logic [31:0]    src_c_id;
+
+logic           rs1_rd_en;
+logic [4:0]     rs1_rd_addr;
+logic [31:0]    rs1_rd_data;
+logic           rs1_rd_value;
+
+logic           rs2_rd_en;
+logic [4:0]     rs2_rd_addr;
+logic [31:0]    rs2_rd_data;
+logic           rs2_rd_value;
+
+logic           rd_rf1_en;
+logic [4:0]     rd_rf1_addr;
+logic [31:0]    rd_rf1_data;
+logic           rd_rf1_dirty;
+
+logic           rd_rf2_en;
+logic [4:0]     rd_rf2_addr;
+logic [31:0]    rd_rf2_data;
+logic           rd_rf2_dirty;
+
+logic           alu_en_id;
+alu_op_e        alu_op_id;
+logic           branch_id;
+logic           jump_id;
+
+logic           lsu_en_id;
+lsu_op_e        lsu_op_id;
+lsu_dtype_e     lsu_dtype_id;
+
+logic           csr_en_id;
+logic [1:0]     csr_op_id;
+logic [11:0]    csr_addr_id;
+
+logic           rd_wr_en_id;
+logic [4:0]     rd_wr_addr_id;
+   
+logic [31:0]    imm_itype; 
 logic [31:0]    imm_stype;
 logic [31:0]    imm_utype;
 logic [31:0]    imm_btype;
 logic [31:0]    imm_jtype;
+logic [31:0]    imm_rs1;
 
-logic           lui_instr;
-logic           auipc_instr;
-logic           branch_instr;
-logic           jalr_instr;
-logic           jal_instr;
-logic           load_instr;
-logic           store_instr;
-logic           imm_instr;
-logic           reg_instr;
-logic           sys_instr;
+logic           ecall_en;
+logic           ebreak_en;
+logic           illegal_instr;
 
-logic           dest_instr;
+logic [4:0]     exc_cause;
+logic [5:0]     exc_casue_id;
 
-logic           read_regfile_ch0_instr;
-logic           read_regfile_ch1_instr;
+logic           read_rf_busy;
+logic           exc_taken_id;
+logic           valid_id;
 
-logic           alu_add;
-logic           alu_sub;
-logic           alu_xor;
-logic           alu_or;
-logic           alu_and;
-logic           alu_sra;
-logic           alu_sll;
-logic           alu_srl;
-logic           alu_slt;
-logic           alu_sltu;
-logic [ALU_NUM-1:0] alu_op;
-logic [31:0]    alu_operate_a;
-logic [31:0]    alu_operate_b;
-logic [31:0]    alu_operate_c;
-
-logic           beq;
-logic           bne;
-logic           blt;
-logic           bge;
-logic           bltu;
-logic           bgeu;
-logic [5:0]     branch_op;
-logic [31:0]    branch_offset;
-
-logic           load_store;
-logic [2:0]     mem_width;
 //////////////////////////////////////////////
 //main code
 
-assign opcode[6:0]  = instruction[6:0];
-assign funct3[2:0]  = instruction[14:12];
-assign funct7[7:0]  = instruction[31:25];
-assign rs1[4:0]     = instruction[19:15];
-assign rs2[4:0]     = instruction[24:20];
-assign rd[4:0]      = instruction[11:7];
- 
-assign imm_itype[31:0] = { {20{instruction[31]}}, instruction[31:20] };
-assign imm_stype[31:0] = { {20{instruction[31]}}, instruction[31:25],instruction[11:7]};
-assign imm_utype[31:0] = { instruction[31:12], 12'h0 };
-assign imm_btype[31:0] = { {19{instruction[31]}}, instruction[31], instruction[7],instruction[30:25],instruction[11:8],1'b0};
-assign imm_jtype[31:0] = { {12{instruction[31]}}, instruction[19:12],instruction[20],instruction[30:21],1'b0};
-
-assign lui_instr     = ( opcode[6:0] == OPCODE_LUI ); //lui
-assign auipc_instr   = ( opcode[6:0] == OPCODE_AUIPC ); //luipc
-assign branch_instr  = ( opcode[6:0] == OPCODE_BRANCH ); //beq,bne,blt,bge,bltu,bgeu
-assign jal_instr     = ( opcode[6:0] == OPCODE_JAL ); //jar
-assign jalr_instr    = ( opcode[6:0] == OPCODE_JALR ); //jalr
-assign load_instr    = ( opcode[6:0] == OPCODE_LOAD ); //lb,lh,lw,lbu,lhu
-assign store_instr   = ( opcode[6:0] == OPCODE_STORE ); //sb,sh,sw
-assign imm_instr     = ( opcode[6:0] == OPCODE_IMM ); //addi,slti,sltiu,xori,andi,slli,srli,srai
-assign reg_instr     = ( opcode[6:0] == OPCODE_REG ); //add,sub,sll,slt,sltu,xor,srl,sra,or,and
-assign sys_instr     = ( opcode[6:0] == OPCODE_SYSTEM ); //csrrw,csrrs,csrrc,csrrwi,csrrsi,csrrci
-
-//the instr have dest register
-assign dest_instr = lui_instr | auipc_instr | jal_instr | jalr_instr | load_instr | imm_instr | reg_instr | sys_instr;
 
 //////////////////////////////////////////////
-//read register file ch0
-//////////////////////////////////////////////
-assign operate_a_read_ch0 = (
-            reg_instr    | 
-            load_instr   | 
-            imm_instr    | 
-            branch_instr | 
-            store_instr  | 
-            jalr_instr   | 
-            load_instr   | 
-            store_instr
-);
+//src mux
+always @(*)begin
+    src_a_id = 32'h0;
+    unique case( src_a_mux )
+        SRC_A_REG_RS1     :begin src_a_id = rs1_rd_data;end    
+        SRC_A_IMM_UTYPE   :begin src_a_id = imm_utype;end
+        SRC_A_PC_ID       :begin src_a_id = pc_id;end
+        SRC_A_IMM_RS1     :begin src_a_id = imm_rs1;end
+        default:begin src_a_id = 32'h0;end
+    endcase
+end
 
-assign read_regfile_ch0_instr   = operate_a_read_ch0;
-assign register_ch0_rd          = ( instruction_value & read_regfile_ch0_instr );
-assign register_ch0_addr[4:0]   = rs1[4:0];
+always @(*)begin
+    src_b_id = 32'h0;
+    unique case( src_b_mux )
+        SRC_B_REG_RS2     :begin src_b_id = rs2_rd_data;end 
+        SRC_B_IMM_ITYPE   :begin src_b_id = imm_itype;end
+        SRC_B_IMM_UTYPE   :begin src_b_id = imm_utype;end
+        SRC_B_IMM_JTYPE   :begin src_b_id = imm_jtype;end
+        SRC_B_IMM_STYPE   :begin src_b_id = imm_stype;end        
+        SRC_B_ZERO        :begin src_b_id = 32'h0; end
+        default:begin src_b_id = 32'h0; end
+    endcase
+end
 
+always @(*)begin
+    src_c_id = 32'h0;
+    unique case( src_c_mux )
+        SRC_C_IMM_BTYPE   :begin src_c_id = imm_btype;end
+        SRC_C_REG_RS2     :begin src_c_id = rs2_rd_data;end
+        SRC_C_CSR_ADDR    :begin src_c_id = {20'h0, csr_addr_id[11:0]};end
+        default:begin src_c_id = 32'h0; end
+    endcase
+end
 
-//////////////////////////////////////////////
-//read register file ch1
-//////////////////////////////////////////////
-assign operate_b_read_ch1 = (
-            reg_instr       | 
-            branch_instr     
-);
+decoder decoder( /*AUTOINST*/
+		.clk			    (clk),
+		.reset_n		    (reset_n),
 
-assign operate_c_read_ch1 = store_instr;
+		.instr_payload		(instr_payload[31:0]),
+		.instr_value		(instr_value),
 
-assign read_regfile_ch1_instr   = operate_b_read_ch1 | operate_c_read_ch1;
-assign register_ch1_rd          = ( instruction_value & read_regfile_ch1_instr );
-assign register_ch1_addr[4:0]   = rs2[4:0];
+		.rs1_rd_en		    (rs1_rd_en),
+		.rs1_rd_addr		(rs1_rd_addr[4:0]),
+		.rs2_rd_en		    (rs2_rd_en),
+		.rs2_rd_addr		(rs2_rd_addr[4:0]),
 
+		.alu_en			    (alu_en_id),
+		.alu_op			    (alu_op_id),
+		.branch			    (branch_id),
+        .jump               (jump_id),
 
-//////////////////////////////////////////////
-//alu 
-//////////////////////////////////////////////
-assign alu_add = (
-    ( reg_instr & (funct3==FUNC_ADD)    & (funct7==7'b000_0000)    ) |
-    ( imm_instr & (funct3==FUNC_ADDI)    ) |
-    ( lui_instr                          ) |
-    ( auipc_instr                        ) |
-    ( load_instr                         ) |
-    ( store_instr                        ) |
-    ( jal_instr                          ) |
-    ( jalr_instr                         ) |
-    ( load_instr                         ) |
-    ( store_instr                        ) 
-);
+		.lsu_en			    (lsu_en_id),
+		.lsu_op			    (lsu_op_id),
+		.lsu_dtype		    (lsu_dtype_id),
 
-assign alu_sub = ( reg_instr & (funct3==FUNC_SUB) & (funct7==7'b010_0000) );
+		.csr_en			    (csr_en_id),
+		.csr_op			    (csr_op_id[1:0]),
+		.csr_addr		    (csr_addr_id[11:0]),
 
-//logic
-assign alu_xor = (
-    ( reg_instr & (funct3==FUNC_XOR)    & (funct7==7'b000_0000)     ) |
-    ( imm_instr & (funct3==FUNC_XORI)                               ) 
-);
+		.src_a_mux		    (src_a_mux),
+		.src_b_mux		    (src_b_mux),
+		.src_c_mux		    (src_c_mux),
+		
+        .rd_wr_en		    (rd_wr_en_id),
+		.rd_wr_addr		    (rd_wr_addr_id[4:0]),
 
-assign alu_or = (
-    ( reg_instr & (funct3==FUNC_OR)     & (funct7==7'b000_0000)     ) |
-    ( imm_instr & (funct3==FUNC_ORI)                                ) 
-);
+		.imm_itype		    (imm_itype[31:0]),
+		.imm_stype		    (imm_stype[31:0]),
+		.imm_utype		    (imm_utype[31:0]),
+		.imm_btype		    (imm_btype[31:0]),
+		.imm_jtype		    (imm_jtype[31:0]),
+		.imm_rs1		    (imm_rs1[31:0]),
 
-assign alu_and = (
-    ( reg_instr & (funct3==FUNC_AND)    & (funct7==7'b000_0000)     ) |
-    ( imm_instr & (funct3==FUNC_ANDI)                               ) 
-);
-
-//shift
-assign alu_sll = (
-    ( reg_instr & (funct3==FUNC_SLL)    & (funct7==7'b000_0000)     ) |
-    ( imm_instr & (funct3==FUNC_SLLI)   & (funct7==7'b000_0000)     )
-);
-
-assign alu_sra = (
-    ( reg_instr & (funct3==FUNC_SRA)    & (funct7==7'b010_0000)     ) |
-    ( imm_instr & (funct3==FUNC_SRAI)   & (funct7==7'b010_0000)     ) 
-);
-
-assign alu_srl = (
-    ( reg_instr & (funct3==FUNC_SRL)    & (funct7==7'b000_0000)     ) |
-    ( imm_instr & (funct3==FUNC_SRLI)   & (funct7==7'b000_0000)     )
-);
-
-//compare
-assign alu_slt = (
-    ( reg_instr & (funct3==FUNC_SLT)    & (funct7==7'b000_0000)     ) |
-    ( imm_instr & (funct3==FUNC_SLTI)                               )
-);
-
-assign alu_sltu = (
-    ( reg_instr & (funct3==FUNC_SLTU)    & (funct7==7'b000_0000)    ) |
-    ( imm_instr & (funct3==FUNC_SLTIU)                              )
+		.ecall_en		    (ecall_en),
+		.ebreak_en		    (ebreak_en),
+		.illegal_instr		(illegal_instr)
 );
 
 
+score_board score_board (
+        .rs1_rd_en		    (rs1_rd_en),
+        .rs1_rd_addr		(rs1_rd_addr[4:0]),
+        .rs1_rd_data		(rs1_rd_data[31:0]),
+        .rs1_rd_value		(rs1_rd_value),
 
-//////////////////////////////////////////////
-assign alu_op[ALU_NUM-1:0] = (
-    ( {ALU_NUM{ alu_add     } } & ALU_ADD ) |
-    ( {ALU_NUM{ alu_sub     } } & ALU_SUB ) |
-    ( {ALU_NUM{ alu_xor     } } & ALU_XOR ) |
-    ( {ALU_NUM{ alu_or      } } & ALU_OR  ) |
-    ( {ALU_NUM{ alu_and     } } & ALU_AND ) |
-    ( {ALU_NUM{ alu_sll     } } & ALU_SLL ) |
-    ( {ALU_NUM{ alu_sra     } } & ALU_SRA ) |
-    ( {ALU_NUM{ alu_srl     } } & ALU_SRL ) |
-    ( {ALU_NUM{ alu_slt     } } & ALU_SLT ) |
-    ( {ALU_NUM{ alu_sltu    } } & ALU_SLTU) |
-    ( {ALU_NUM{ branch_instr} } & branch_op[ALU_NUM-1:0] ) 
+        .rs2_rd_en		    (rs2_rd_en),
+        .rs2_rd_addr		(rs2_rd_addr[4:0]),
+        .rs2_rd_data		(rs2_rd_data[31:0]),
+        .rs2_rd_value		(rs2_rd_value),
+
+        .rd_rf1_en		    (rd_rf1_en),
+        .rd_rf1_addr		(rd_rf1_addr[4:0]),
+        .rd_rf1_data		(rd_rf1_data[31:0]),
+        .rd_rf1_dirty		(rd_rf1_dirty),
+
+        .rd_rf2_en		    (rd_rf2_en),
+        .rd_rf2_addr		(rd_rf2_addr[4:0]),
+        .rd_rf2_data		(rd_rf2_data[31:0]),
+        .rd_rf2_dirty		(rd_rf2_dirty),
+
+        .forward_ex_en		(forward_ex_en),
+        .forward_ex_addr	(forward_ex_addr[4:0]),
+        .forward_ex_wdata	(forward_ex_wdata[31:0]),
+
+        .forward_mem_en		(forward_mem_en),
+        .forward_mem_addr	(forward_mem_addr[4:0]),
+        .forward_mem_wdata	(forward_mem_wdata[31:0]),
+
+        .forward_wb_en		(rf_wr_wb_en),
+        .forward_wb_addr	(rf_wr_wb_addr[4:0]),
+        .forward_wb_wdata	(rf_wr_wb_data[31:0])
 );
 
-assign alu_operate_a = (
-        ( {32{lui_instr                 }} & {imm_utype[31:0]}          ) |
-        ( {32{auipc_instr               }} & {pc_id[31:0]}              ) |
-        ( {32{jal_instr                 }} & {pc_id[31:0]}              ) |
-        ( {32{operate_a_read_ch0        }} & {register_ch0_data[31:0]}  ) 
+register_file rf(
+		 .clk			    (clk),
+		 .reset_n		    (reset_n),
+
+		 .rd_ch0_en		    (rd_rf1_en),
+		 .rd_ch0_addr		(rd_rf1_addr[4:0]),
+		 .rd_ch0_data		(rd_rf1_data[31:0]),
+		 .rd_ch0_dirty		(rd_rf1_dirty),
+
+		 .rd_ch1_en		    (rd_rf2_en),
+		 .rd_ch1_addr		(rd_rf2_addr[4:0]),
+		 .rd_ch1_data		(rd_rf2_data[31:0]),
+		 .rd_ch1_dirty		(rd_rf2_dirty),
+
+		 .invalid_en		(rd_wr_en_id),
+		 .invalid_addr		(rd_wr_addr_id[4:0]),
+
+		 .wr_ch0_en		    (rf_wr_wb_en),
+		 .wr_ch0_addr		(rf_wr_wb_addr[4:0]),
+		 .wr_ch0_data		(rf_wr_wb_data[31:0])
 );
-
-assign alu_operate_b = (
-        ( {32{lui_instr                 }} & 32'h0                      ) |
-        ( {32{auipc_instr               }} & imm_utype[31:0]            ) |
-        ( {32{jal_instr                 }} & imm_jtype[31:0]            ) |
-        ( {32{jalr_instr                }} & imm_itype[31:0]            ) |
-        ( {32{operate_b_read_ch1        }} & register_ch1_data[31:0]    ) |
-        ( {32{imm_instr                 }} & imm_itype[31:0]            ) |
-        ( {32{load_instr                }} & imm_itype[31:0]            ) |
-        ( {32{store_instr               }} & imm_stype[31:0]            )
-); 
-
-assign alu_operate_c = (
-        ( {32{branch_instr              }} & branch_offset[31:0]        ) |
-        ( {32{operate_c_read_ch1        }} & register_ch1_data[31:0]    ) 
-);
-
-
-//////////////////////////////////////////////
-// branch instr
-//////////////////////////////////////////////
-assign beq = branch_instr & ( funct3[2:0] == FUNC_BEQ );
-assign bne = branch_instr & ( funct3[2:0] == FUNC_BNE );
-assign blt = branch_instr & ( funct3[2:0] == FUNC_BLT );
-assign bge = branch_instr & ( funct3[2:0] == FUNC_BGE );
-assign bltu= branch_instr & ( funct3[2:0] == FUNC_BLTU);
-assign bgeu= branch_instr & ( funct3[2:0] == FUNC_BGEU);
-
-assign branch_op[ALU_NUM-1:0] = (
-        ( {ALU_NUM{beq}}  & ALU_EQ  ) |
-        ( {ALU_NUM{bne}}  & ALU_NE  ) |
-        ( {ALU_NUM{blt}}  & ALU_LT  ) |
-        ( {ALU_NUM{bge}}  & ALU_GE  ) |
-        ( {ALU_NUM{bltu}} & ALU_LTU ) |
-        ( {ALU_NUM{bgeu}} & ALU_GEU ) 
-);
-
-assign branch_offset[31:0] = imm_btype[31:0];
-
-
-//////////////////////////////////////////////
-// jump instr
-//////////////////////////////////////////////
-assign jump = jal_instr | jalr_instr;
-
-
-//////////////////////////////////////////////
-// lsu instr
-//////////////////////////////////////////////
-assign load_store = load_instr | store_instr;
-assign mem_width[2:0] = funct3[2:0];
-
 
 
 //////////////////////////////////////////////
 //pipeline register
 //////////////////////////////////////////////
-
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         pc_id[31:0] <= 32'b0;
-    end else if(!stall_id_stage ) begin
+    end else if( valid_id ) begin
         pc_id[31:0] <= pc_if[31:0];
     end
 end
 
-//alu
+//pipeline
+assign ready_id = ( ( ~read_rf_busy ) & ready_ex & (~stall_D) ) | (exc_taken_id);
+assign valid_id = ( ~read_rf_busy ) & ready_ex & (~stall_D);
+
+assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_value));
+
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
-        ex_alu_op[ALU_NUM-1:0]  <= {ALU_NUM{1'b0}};
-        ex_alu_operate_a[31:0]  <= 32'h0;
-        ex_alu_operate_b[31:0]  <= 32'h0;
-        ex_alu_operate_c[31:0]  <= 32'h0;
-        ex_jump                 <= 1'b0;
-        ex_dest_addr[4:0]       <= 4'h0;
-    end else if( flush_if_id )begin
-        ex_alu_op[ALU_NUM-1:0]    <= {ALU_NUM{1'b0}};
-        ex_alu_operate_a[31:0]    <= 32'h0;
-        ex_alu_operate_b[31:0]    <= 32'h0;
-        ex_alu_operate_c[31:0]    <= 32'h0;
-        ex_dest_addr[4:0]         <= 4'h0;
-        ex_jump                   <= 1'b0;
-    end else if( !stall_id_stage & instruction_value )begin
-        ex_alu_op[ALU_NUM-1:0]    <= alu_op[ALU_NUM-1:0];
-        ex_alu_operate_a[31:0]    <= alu_operate_a[31:0];
-        ex_alu_operate_b[31:0]    <= alu_operate_b[31:0];
-        ex_alu_operate_c[31:0]    <= alu_operate_c[31:0];
-        ex_dest_addr[4:0]         <= rd[4:0];
-        ex_jump                   <= jump;
+        alu_en_ex       <= 1'b0;
+        alu_op_ex       <= ALU_ADD;
+
+        lsu_en_ex       <= 1'b0;
+        lsu_op_ex       <= LSU_OP_LD;
+        lsu_dtype_ex    <= LSU_DTYPE_U_BYTE;
+        
+        csr_en_ex       <= 1'b0;
+        csr_op_ex       <= CSR_OP_READ;
+
+        src_a_ex        <= 32'h0;
+        src_b_ex        <= 32'h0;
+        src_c_ex        <= 32'h0;
+
+        branch_ex       <= 1'b0;
+        jump_ex         <= 1'b0;
+
+        rd_wr_en_ex     <= 1'b0;
+        rd_wr_addr_ex   <= 5'h0;
+    end else if( flush_D & ready_id )begin
+    //flush pipeline: program flow was broken such as jump/branch/interrupt/exception
+        alu_en_ex       <= 1'b0;
+        lsu_en_ex       <= 1'b0;
+        csr_en_ex       <= 1'b0;
+        branch_ex       <= 1'b0;
+        jump_ex         <= 1'b0;
+        rd_wr_en_ex     <= 1'b0;
+    end else if( ready_id )begin
+    //flow pipeline :ID stage is ready
+        alu_en_ex       <= alu_en_id;
+        alu_op_ex       <= alu_op_id;
+
+        lsu_en_ex       <= lsu_en_id;
+        lsu_op_ex       <= lsu_op_id;
+        lsu_dtype_ex    <= lsu_dtype_id;
+        
+        csr_en_ex       <= csr_en_id;
+        csr_op_ex       <= csr_op_id;
+
+        src_a_ex        <= src_a_id;
+        src_b_ex        <= src_b_id;
+        src_c_ex        <= src_c_id;
+
+        branch_ex       <= branch_id;
+        jump_ex         <= jump_id;
+
+        rd_wr_en_ex     <= rd_wr_en_id;
+        rd_wr_addr_ex   <= rd_wr_addr_id;
     end
 end
 
-//lsu
-always @(posedge clk or negedge reset_n)begin
-    if(!reset_n)begin
-        ex_lsu_valid              <= 1'b0;
-        ex_lsu_wr_type            <= 1'b0;
-        ex_lsu_width_type[2:0]    <= 3'b0;
-    end else if(flush_if_id)begin
-        ex_lsu_valid              <= 1'b0;
-        ex_lsu_wr_type            <= 1'b0;
-        ex_lsu_width_type[2:0]    <= 3'b0;
-    end else if(!stall_id_stage & instruction_value)begin
-        ex_lsu_valid              <= load_store;
-        ex_lsu_wr_type            <= store_instr;
-        ex_lsu_width_type[2:0]    <= mem_width[2:0];
-    end
-end
+assign csr_addr_ex[11:0]    = src_c_ex[11:0];
+assign csr_wdata_ex[31:0]   = src_a_ex[31:0];
+
 
 //TODO fpu
 //TODO mult
 //TODO div
+
+//=======================================================================//
+//interrupt/exception control
+//irq_req must continue to irq_ack
+//
+//=======================================================================//
+assign instr_acs_fault = (instr_value & instr_fetch_error);
+
+assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault;
+assign interrupt_taken_id = ( instr_value & irq_req );
+assign exc_taken_id       = (exception_taken_id | interrupt_taken_id) & valid_id;
+
+always @(*)begin
+    exc_cause[4:0] = 5'b0;
+    unique case(1)
+        ecall_en        :begin exc_cause = ECAUSE_ECALL; end
+        ebreak_en       :begin exc_cause = ECAUSE_EBREAK; end
+        illegal_instr   :begin exc_cause = ECAUSE_ILLEGAL_INSTR; end
+        instr_acs_fault :begin exc_cause = ECAUSE_INSTR_FAULT; end
+        default         :begin exc_cause = 5'b0; end
+    endcase
+end
+
+assign exc_casue_id[5:0] = exception_taken_id ? {1'b0,exc_cause[4:0]} : {1'b1, irq_id[4:0]};
+
+assign irq_ack = irq_taken_wb;
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        exc_taken_ex        <= 1'b0;
+        exc_cause_ex[5:0]   <= 6'h0;
+        exc_tval_ex[31:0]   <= 32'h0;
+    end else if(valid_id & flush_D)begin
+        exc_taken_ex        <= 1'b0;
+        exc_cause_ex[5:0]   <= 6'h0;
+        exc_tval_ex[31:0]   <= 32'h0;
+    end else if( valid_id & exc_taken_ex )begin
+        exc_taken_ex        <= exception_taken_id | interrupt_taken_id;
+        exc_cause_ex[5:0]   <= exc_casue_id[5:0];
+        exc_tval_ex[31:0]   <= 32'h0; //TODO
+    end
+end
 
 endmodule

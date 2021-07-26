@@ -2,7 +2,7 @@
 //   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
 //
 //   Filename     : if_stage.sv
-//   Auther       : cnan1
+//   Auther       : cnan
 //   Created On   : 2021年02月28日
 //   Description  : 
 //
@@ -19,15 +19,17 @@ module if_stage#(
     input                   fetch_enable,
 
     //from controller
-    input                   flush_if_id,
-    input                   stall_if_stage,
+    input                   flush_F,
+    input                   stall_F,
+    input                   ready_id,
     input                   set_pc_valid,
     input [31:0]            set_pc,
     
     //decoder
     output logic [31:0]     pc_if,
-    output logic [31:0]     id_instruction,
-    output logic            id_instruction_value,
+    output logic [31:0]     instr_payload_id,
+    output logic            instr_value_id,
+    output logic            instr_fetch_error,
     output logic            is_compress_intr,
     
     //instruction interface
@@ -83,6 +85,8 @@ logic [31:0]    fifo_rdata;
 logic           fifo_rdata_valid;
 logic           fifo_empty;
 
+logic           ready_if;
+
 parameter IDLE = 2'd0;
 parameter DATA = 2'd1;
 //////////////////////////////////////////////
@@ -107,7 +111,7 @@ always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         pc_if <= boot_addr;
         is_boot <= 1'b0;
-    end else if( !stall_if_stage ) begin
+    end else if( ready_if | set_pc ) begin
         pc_if <= next_pc;
         is_boot <= 1'b1;
     end
@@ -125,16 +129,21 @@ assign instruction[15:0] = instruction_temp[15:0];
 
 assign instruction_value = pc_unalign ? hold_data_is_compress | (rdata_value && hold_rdata_value) : rdata_value & fetch_en;
 
+
+//////////////////////////////////////////////////////////////////////
+//pipeline
+assign ready_if = ready_id & (~stall_F);
+
 always @(posedge clk or negedge reset_n)begin
     if( !reset_n )begin
-        id_instruction          <= 32'h0;
-        id_instruction_value    <= 1'b0;
-    end else if(flush_if_id)begin
-        id_instruction          <= 32'h0;
-        id_instruction_value    <= 1'b0;
-    end else if(!stall_if_stage)begin
-        id_instruction          <= instruction;
-        id_instruction_value    <= instruction_value;
+        instr_payload_id    <= 32'h0;
+        instr_value_id      <= 1'b0;
+    end else if( flush_F & ready_if )begin
+        instr_payload_id    <= 32'h0;
+        instr_value_id      <= 1'b0;
+    end else if(ready_if) begin
+        instr_payload_id    <= instruction;
+        instr_value_id      <= instruction_value;
     end
 end
 
@@ -143,10 +152,10 @@ always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         hold_rdata <= 16'h0;
         hold_rdata_value <= 1'b0;
-    end else if(flush_if_id)begin
+    end else if( fifo_clear )begin
         hold_rdata <= 16'h0;
         hold_rdata_value <= 1'b0;
-    end else if(fetch_en & (is_compress_intr | pc_unalign) )begin
+    end else if(fetch_en & (is_compress_intr | pc_unalign) & rdata_value )begin
         hold_rdata <= rdata[31:16];
         hold_rdata_value <= 1'b1;
     end else begin
@@ -155,10 +164,10 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
-assign fetch_en = is_boot && (set_pc_valid | branch_prediction_taken | (~stall_if_stage)) && fetch_enable;
+assign fetch_en = is_boot && (set_pc_valid | branch_prediction_taken | ready_if) && fetch_enable;
 
 assign hold_data_is_compress = (hold_rdata[1:0]!=2'b11) & hold_rdata_value & pc_unalign;
-assign fifo_pop = fetch_en && (~fifo_empty) && (~hold_data_is_compress) && (~stall_if_stage);
+assign fifo_pop = fetch_en && (~fifo_empty) && (~hold_data_is_compress) && ready_if;
 assign fifo_clear = set_pc_valid | branch_prediction_taken;
 
 assign read_from_fifo = fifo_pop | hold_data_is_compress | (is_compress_intr & pc_unalign);

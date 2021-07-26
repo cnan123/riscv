@@ -10,38 +10,39 @@
 //================================================================
 
 module controller(
-    input           clk,
-    input           reset_n,
+    input                       clk,
+    input                       reset_n,
 
-    //read register_file
-    input           read_a_in_id,
-    input [4:0]     read_a_addr,
-    input           read_b_in_id,
-    input [4:0]     read_b_addr,
-    input           load_instr_in_ex,
-    input [4:0]     ex_dest_we_addr,
-    input           load_instr_in_mem,
-    input [4:0]     mem_dest_we_addr,
+    input                       jump,
+    input                       branch_taken,
+    input                       fence,
+    input [31:0]                jump_target_addr,
+    input [31:0]                branch_target_addr,
+    input [31:0]                pc_if,
 
-    input           jump,
-    input [31:0]    jump_target_addr,
+    output                      set_pc_valid,
+    output [31:0]               set_pc,
 
-    input           branch_taken,
-    input [31:0]    branch_target_addr,
+    //exception interrupt
+    input logic                 lsu_valid,
+    input logic                 lsu_err,
+    input logic                 exc_taken_wb,
+    input logic [5:0]           exc_cause_wb,
+    input logic [31:0]          exc_tval_wb,
 
-    output          set_pc_valid,
-    output [31:0]   set_pc,
+    //pipeline control
+    output logic                flush_F,
+    output logic                flush_D,
+    output logic                flush_E,
+    output logic                flush_M,
+    output logic                flush_W,
+    output logic                stall_F, //reserved
+    output logic                stall_D, //reserved
+    output logic                stall_E, //reserved
+    output logic                stall_M, //reserved
+    output logic                stall_W, //reserved
 
-    input           ex_stage_ready,
-    input           mem_stage_ready,
-    input           wb_stage_ready,
-
-    output          stall_if_stage,
-    output          stall_id_stage,
-    output          stall_ex_stage,
-    output          stall_mem_stage,
-    output          flush_if,
-    output          flush_id
+    output                      irq_ack
 );
 
 // Local Variables:
@@ -52,47 +53,70 @@ module controller(
 /*AUTOLOGIC*/
 //////////////////////////////////////////////
 
-logic control_stall_if;
-logic control_stall_id;
-logic load_stall;
+parameter IDLE = 1'b0;
+parameter EXC_FLUSH = 1'b1;
+
+logic           branch_jump;
+logic           exc_taken;
+logic           exc_fetch;
+logic [31:0]    exc_fetch_pc;
+logic           fsm_control_ns;
+logic           fsm_control_cs;
 
 //////////////////////////////////////////////
 //main code
 //
-//
-assign load_stall = (
-            ( read_a_in_id & load_instr_in_ex   & (read_a_addr==ex_dest_we_addr    ) ) |
-            ( read_a_in_id & load_instr_in_mem  & (read_a_addr==mem_dest_we_addr   ) ) |
-            ( read_b_in_id & load_instr_in_ex   & (read_b_addr==ex_dest_we_addr    ) ) |
-            ( read_b_in_id & load_instr_in_mem  & (read_b_addr==mem_dest_we_addr   ) ) 
-);
-
 
 assign set_pc_valid = branch_taken | jump;
 assign set_pc[31:0] = (
     ( {32{branch_taken}}    & branch_target_addr[31:0]  ) |
-    ( {32{jump}}            & jump_target_addr[31:0]    )
+    ( {32{jump}}            & jump_target_addr[31:0]    ) |
+    ( {32{exc_fetch}}       & exc_fetch_pc[31:0]        ) |
+    ( {32{fence}}           & pc_if[31:0]               )
 );
-
 
 //////////////////////////////////////////////
 //pipeline controller
 //////////////////////////////////////////////
-assign flush_if_id = branch_taken | jump;
+assign branch_jump = branch_taken | jump;
+assign exc_taken = exc_taken_wb | (lsu_valid & lsu_err);
 
-assign flush_if     = flush_if_id;
-assign flush_id     = flush_if_id | ( load_stall & mem_stage_ready );
+assign exc_fetch = (fsm_control_cs == EXC_FLUSH);
+assign exc_fetch_pc = 32'h0; //TODO exception entry 
 
-assign stall_if_stage   = (~wb_stage_ready) | (~mem_stage_ready)| (~ex_stage_ready) | load_stall | control_stall_if;
-assign stall_id_stage   = (~wb_stage_ready) | (~mem_stage_ready)| (~ex_stage_ready) | load_stall | control_stall_id;
-assign stall_ex_stage   = (~wb_stage_ready) | (~mem_stage_ready);
-assign stall_mem_stage  = (~wb_stage_ready);
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        fsm_control_cs <= 1'b0;
+    end else begin
+        fsm_control_cs <= fsm_control_ns;
+    end
+end
 
-//////////////////////////////////////////////
-//interrupt exception
-//////////////////////////////////////////////
-//TODO
-assign control_stall_if = 1'b0;
-assign control_stall_id = 1'b0;
+always @(*)begin
+    fsm_control_ns = fsm_control_cs;
+    case( fsm_control_cs )
+        IDLE:      if(exc_taken) fsm_control_ns = EXC_FLUSH;
+        EXC_FLUSH: fsm_control_ns = IDLE;
+    endcase
+end
+
+
+//////////////////////////////////////////////////////
+//just need one cycle to flush pipeline
+//mode switch need another cycle to switch context
+//////////////////////////////////////////////////////
+
+assign flush_F  = exc_taken | branch_jump | fence;
+assign flush_D  = exc_taken | branch_jump ;
+assign flush_E  = exc_taken;
+assign flush_M  = exc_taken;
+assign flush_W  = exc_taken;
+
+//This reverserd for pipeline extern 
+assign stall_F  = 1'b0;
+assign stall_D  = 1'b0;
+assign stall_E  = 1'b0;
+assign stall_M  = 1'b0;
+assign stall_W  = 1'b0;
 
 endmodule
