@@ -37,6 +37,7 @@ module riscv_core(
     input           data_valid
 );
 
+import riscv_pkg::*;
 // Local Variables:
 // verilog-library-directories:(".")
 // End:
@@ -69,14 +70,17 @@ logic			flush_M;		// From controller of controller.v
 logic			flush_W;		// From controller of controller.v
 logic [4:0]		forward_ex_addr;	// From ex_stage of ex_stage.v
 logic			forward_ex_en;		// From ex_stage of ex_stage.v
+logic [TAG_WIDTH-1:0]	forward_ex_tag;		// From ex_stage of ex_stage.v
 logic [31:0]		forward_ex_wdata;	// From ex_stage of ex_stage.v
 logic [4:0]		forward_mem_addr;	// From mem_stage of mem_stage.v
 logic			forward_mem_en;		// From mem_stage of mem_stage.v
+logic [TAG_WIDTH-1:0]	forward_mem_tag;	// From mem_stage of mem_stage.v
 logic [31:0]		forward_mem_wdata;	// From mem_stage of mem_stage.v
 logic			instr_fetch_error;	// From if_stage of if_stage.v
 logic [31:0]		instr_payload_id;	// From if_stage of if_stage.v
 logic			instr_value_id;		// From if_stage of if_stage.v
-logic			irq_ack;		// From id_stage of id_stage.v, ...
+logic			irq_ack;		// From id_stage of id_stage.v
+logic			irq_taken_wb;		// From controller of controller.v
 logic			is_compress_intr;	// From if_stage of if_stage.v
 logic			jump_ex;		// From id_stage of id_stage.v
 logic			jump_taken;		// From ex_stage of ex_stage.v
@@ -100,6 +104,9 @@ logic [31:0]		rd_wr_data_wb;		// From mem_stage of mem_stage.v
 logic			rd_wr_en_ex;		// From id_stage of id_stage.v
 logic			rd_wr_en_mem;		// From ex_stage of ex_stage.v
 logic			rd_wr_en_wb;		// From mem_stage of mem_stage.v
+logic [TAG_WIDTH-1:0]	rd_wr_tag_ex;		// From id_stage of id_stage.v
+logic [TAG_WIDTH-1:0]	rd_wr_tag_mem;		// From ex_stage of ex_stage.v
+logic [TAG_WIDTH-1:0]	rd_wr_tag_wb;		// From mem_stage of mem_stage.v
 logic			ready_ex;		// From ex_stage of ex_stage.v
 logic			ready_id;		// From id_stage of id_stage.v
 logic			ready_mem;		// From mem_stage of mem_stage.v
@@ -107,6 +114,7 @@ logic			ready_wb;		// From wb_stage of wb_stage.v
 logic [4:0]		rf_wr_addr;		// From wb_stage of wb_stage.v
 logic [31:0]		rf_wr_data;		// From wb_stage of wb_stage.v
 logic			rf_wr_en;		// From wb_stage of wb_stage.v
+logic [TAG_WIDTH-1:0]	rf_wr_tag;		// From wb_stage of wb_stage.v
 logic [31:0]		set_pc;			// From controller of controller.v
 logic			set_pc_valid;		// From controller of controller.v
 logic [31:0]		src_a_ex;		// From id_stage of id_stage.v
@@ -128,12 +136,15 @@ logic			wb_data_mux;		// From mem_stage of mem_stage.v
 logic irq_req;
 logic [4:0]irq_id;
 logic debug_req;
+logic fence;
+logic data_error;
 
 assign irq_req = 1'b0;
 assign debug_req = 1'b0;
 assign irq_id = 'd0;
+assign fence = 1'b0;
+assign data_error = 1'b0;
 
-import riscv_pkg::*;
 
 alu_op_e            alu_op_ex;
 lsu_op_e            lsu_op_ex;
@@ -182,6 +193,7 @@ if_stage if_stage(
     .instr_payload  (instr_payload_id),
     .instr_value    (instr_value_id),
     .rf_wr_wb_en	(rf_wr_en),
+    .rf_wr_wb_tag	(rf_wr_tag[]),
 	.rf_wr_wb_addr	(rf_wr_addr[]),
 	.rf_wr_wb_data	(rf_wr_data[]),
 );
@@ -207,6 +219,7 @@ id_stage id_stage(
 		  .csr_addr_ex		(csr_addr_ex[11:0]),
 		  .csr_wdata_ex		(csr_wdata_ex[31:0]),
 		  .rd_wr_en_ex		(rd_wr_en_ex),
+		  .rd_wr_tag_ex		(rd_wr_tag_ex[TAG_WIDTH-1:0]),
 		  .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
 		  .exc_taken_ex		(exc_taken_ex),
 		  .exc_cause_ex		(exc_cause_ex[5:0]),
@@ -227,12 +240,15 @@ id_stage id_stage(
 		  .irq_taken_wb		(irq_taken_wb),
 		  .debug_req		(debug_req),
 		  .forward_ex_en	(forward_ex_en),
+		  .forward_ex_tag	(forward_ex_tag[TAG_WIDTH-1:0]),
 		  .forward_ex_addr	(forward_ex_addr[4:0]),
 		  .forward_ex_wdata	(forward_ex_wdata[31:0]),
 		  .forward_mem_en	(forward_mem_en),
+		  .forward_mem_tag	(forward_mem_tag[TAG_WIDTH-1:0]),
 		  .forward_mem_addr	(forward_mem_addr[4:0]),
 		  .forward_mem_wdata	(forward_mem_wdata[31:0]),
 		  .rf_wr_wb_en		(rf_wr_en),		 // Templated
+		  .rf_wr_wb_tag		(rf_wr_tag[TAG_WIDTH-1:0]), // Templated
 		  .rf_wr_wb_addr	(rf_wr_addr[4:0]),	 // Templated
 		  .rf_wr_wb_data	(rf_wr_data[31:0]));	 // Templated
 
@@ -260,9 +276,11 @@ ex_stage ex_stage(
 		  .exc_cause_mem	(exc_cause_mem[5:0]),
 		  .exc_tval_mem		(exc_tval_mem[31:0]),
 		  .rd_wr_en_mem		(rd_wr_en_mem),
+		  .rd_wr_tag_mem	(rd_wr_tag_mem[TAG_WIDTH-1:0]),
 		  .rd_wr_addr_mem	(rd_wr_addr_mem[4:0]),
 		  .rd_wr_data_mem	(rd_wr_data_mem[31:0]),
 		  .forward_ex_en	(forward_ex_en),
+		  .forward_ex_tag	(forward_ex_tag[TAG_WIDTH-1:0]),
 		  .forward_ex_addr	(forward_ex_addr[4:0]),
 		  .forward_ex_wdata	(forward_ex_wdata[31:0]),
 		  // Inputs
@@ -283,6 +301,7 @@ ex_stage ex_stage(
 		  .csr_addr_ex		(csr_addr_ex[11:0]),
 		  .csr_wdata_ex		(csr_wdata_ex[31:0]),
 		  .rd_wr_en_ex		(rd_wr_en_ex),
+		  .rd_wr_tag_ex		(rd_wr_tag_ex[TAG_WIDTH-1:0]),
 		  .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
 		  .exc_taken_ex		(exc_taken_ex),
 		  .exc_cause_ex		(exc_cause_ex[5:0]),
@@ -298,9 +317,11 @@ mem_stage mem_stage(
 		    // Outputs
 		    .ready_mem		(ready_mem),
 		    .forward_mem_en	(forward_mem_en),
+		    .forward_mem_tag	(forward_mem_tag[TAG_WIDTH-1:0]),
 		    .forward_mem_addr	(forward_mem_addr[4:0]),
 		    .forward_mem_wdata	(forward_mem_wdata[31:0]),
 		    .rd_wr_en_wb	(rd_wr_en_wb),
+		    .rd_wr_tag_wb	(rd_wr_tag_wb[TAG_WIDTH-1:0]),
 		    .rd_wr_addr_wb	(rd_wr_addr_wb[4:0]),
 		    .rd_wr_data_wb	(rd_wr_data_wb[31:0]),
 		    .lsu_en_wb		(lsu_en_wb),
@@ -320,6 +341,7 @@ mem_stage mem_stage(
 		    .clk		(clk),
 		    .reset_n		(reset_n),
 		    .rd_wr_en_mem	(rd_wr_en_mem),
+		    .rd_wr_tag_mem	(rd_wr_tag_mem[TAG_WIDTH-1:0]),
 		    .rd_wr_addr_mem	(rd_wr_addr_mem[4:0]),
 		    .rd_wr_data_mem	(rd_wr_data_mem[31:0]),
 		    .lsu_en_mem		(lsu_en_mem),
@@ -340,12 +362,14 @@ wb_stage wb_stage(
 		  // Outputs
 		  .ready_wb		(ready_wb),
 		  .rf_wr_en		(rf_wr_en),
+		  .rf_wr_tag		(rf_wr_tag[TAG_WIDTH-1:0]),
 		  .rf_wr_addr		(rf_wr_addr[4:0]),
 		  .rf_wr_data		(rf_wr_data[31:0]),
 		  // Inputs
 		  .clk			(clk),
 		  .reset_n		(reset_n),
 		  .rd_wr_en_wb		(rd_wr_en_wb),
+		  .rd_wr_tag_wb		(rd_wr_tag_wb[TAG_WIDTH-1:0]),
 		  .rd_wr_addr_wb	(rd_wr_addr_wb[4:0]),
 		  .rd_wr_data_wb	(rd_wr_data_wb[31:0]),
 		  .lsu_en_wb		(lsu_en_wb),
@@ -370,11 +394,11 @@ controller controller(/*AUTOINST*/
 		      .stall_E		(stall_E),
 		      .stall_M		(stall_M),
 		      .stall_W		(stall_W),
-		      .irq_ack		(irq_ack),
+		      .irq_taken_wb	(irq_taken_wb),
 		      // Inputs
 		      .clk		(clk),
 		      .reset_n		(reset_n),
-		      .jump		(jump),
+		      .jump_taken	(jump_taken),
 		      .branch_taken	(branch_taken),
 		      .fence		(fence),
 		      .jump_target_addr	(jump_target_addr[31:0]),

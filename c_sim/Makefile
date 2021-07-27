@@ -9,14 +9,14 @@
 #
 #================================================================
 
-CC		:= riscv32-unknown-elf-gcc
-AS		:= riscv32-unknown-elf-as
-GXX		:= riscv32-unknown-elf-g++
-OBJDUMP	:= riscv32-unknown-elf-objdump
-GDB		:= riscv32-unknown-elf-gdb
-AR		:= riscv32-unknown-elf-ar
-OBJCOPY	:= riscv32-unknown-elf-objcopy
-READELF	:= riscv32-unknown-elf-readelf
+CC		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-gcc
+AS		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-as
+GXX		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-g++
+OBJDUMP	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-objdump
+GDB		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-gdb
+AR		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-ar
+OBJCOPY	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-objcopy
+READELF	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-readelf
 
 RISCV_ARCH		:= rv32im
 RISCV_ABI		:= ilp32

@@ -9,26 +9,32 @@
 //
 //================================================================
 
-module register_file(/*AUTOARG*/
-        input           clk,
-        input           reset_n,
+module register_file#(
+    parameter TAG_WIDTH = 2
+)(/*AUTOARG*/
+        input                       clk,
+        input                       reset_n,
 
-        input           invalid_en,
-        input [4:0]     invalid_addr,
+        input                       invalid_en,
+        input [4:0]                 invalid_addr,
+        output [TAG_WIDTH-1:0]      new_tag,
 
-        input           rd_ch0_en,
-        input [4:0]     rd_ch0_addr,
-        output [31:0]   rd_ch0_data,
-        output          rd_ch0_dirty,
+        input                       rd_ch0_en,
+        input [4:0]                 rd_ch0_addr,
+        output [31:0]               rd_ch0_data,
+        output                      rd_ch0_dirty,
+        output [TAG_WIDTH-1:0]      rd_ch0_tag,
 
-        input           rd_ch1_en,
-        input [4:0]     rd_ch1_addr,
-        output [31:0]   rd_ch1_data,
-        output          rd_ch1_dirty,
+        input                       rd_ch1_en,
+        input [4:0]                 rd_ch1_addr,
+        output [31:0]               rd_ch1_data,
+        output                      rd_ch1_dirty,
+        output [TAG_WIDTH-1:0]      rd_ch1_tag,
 
-        input           wr_ch0_en,
-        input [4:0]     wr_ch0_addr,
-        input [31:0]    wr_ch0_data
+        input                       wr_ch0_en,
+        input [4:0]                 wr_ch0_addr,
+        input [TAG_WIDTH-1:0]       wr_ch0_tag,
+        input [31:0]                wr_ch0_data
 );
 
 // Local Variables:
@@ -41,12 +47,17 @@ module register_file(/*AUTOARG*/
 
 logic [31:0] MEM [31:0];
 logic [31:0] dirty_en;
+logic [TAG_WIDTH-1:0] tag [31:0];
+logic [TAG_WIDTH-1:0] tag_n [31:0];
 
 //////////////////////////////////////////////
 //main code
 
 assign MEM[0][31:0] = 32'h0;
 assign dirty_en[0] = 1'b0;
+
+assign tag[0][TAG_WIDTH-1:0] = {TAG_WIDTH{1'b0}};
+assign tag_n[0][TAG_WIDTH-1:0] = {TAG_WIDTH{1'b0}};
 
 generate
 for(genvar n=1; n<32; n=n+1)begin: register
@@ -63,18 +74,36 @@ for(genvar n=1; n<32; n=n+1)begin: register
             dirty_en[n] <= 1'b0;
         end else if(invalid_en & (invalid_addr==n))begin
             dirty_en[n] <= 1'b1;
-        end else if( wr_ch0_en && (wr_ch0_addr==n))begin
+        end else if( wr_ch0_en && (wr_ch0_addr==n) & (wr_ch0_tag==tag[n]) )begin
             dirty_en[n] <= 1'b0;
+        end
+    end
+    
+    always @(posedge clk or negedge reset_n)begin
+        if( !reset_n )begin
+            tag[n][TAG_WIDTH-1:0] <= {TAG_WIDTH{1'b0}};
+        end else begin
+            tag[n][TAG_WIDTH-1:0] <= tag_n[n][TAG_WIDTH-1:0];
+        end
+    end
+
+    always @(*)begin
+        tag_n[n][TAG_WIDTH-1:0] = tag[n][TAG_WIDTH-1:0];
+        if(invalid_en & invalid_addr==n)begin
+            tag_n[n][TAG_WIDTH-1:0] = tag[n][TAG_WIDTH-1:0] + 1'b1;
         end
     end
 end
 endgenerate
 
+assign new_tag[TAG_WIDTH-1:0]   = tag_n[invalid_addr[4:0]];
 
-assign rd_ch0_data[31:0] = {32{rd_ch0_en}} & MEM[rd_ch0_addr[4:0]];
-assign rd_ch0_dirty      = rd_ch0_en & dirty_en[rd_ch0_addr[4:0]];
+assign rd_ch0_data[31:0]            = {32{rd_ch0_en}} & MEM[rd_ch0_addr[4:0]];
+assign rd_ch0_dirty                 = rd_ch0_en & dirty_en[rd_ch0_addr[4:0]];
+assign rd_ch0_tag[TAG_WIDTH-1:0]    = tag[rd_ch0_addr[4:0]];
 
-assign rd_ch1_data[31:0] = {32{rd_ch1_en}} & MEM[rd_ch1_addr[4:0]];
-assign rd_ch1_dirty      = rd_ch1_en & dirty_en[rd_ch1_addr[4:0]];
+assign rd_ch1_data[31:0]            = {32{rd_ch1_en}} & MEM[rd_ch1_addr[4:0]];
+assign rd_ch1_dirty                 = rd_ch1_en & dirty_en[rd_ch1_addr[4:0]];
+assign rd_ch1_tag[TAG_WIDTH-1:0]    = tag[rd_ch1_addr[4:0]];
 
 endmodule

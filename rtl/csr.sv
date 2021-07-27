@@ -10,8 +10,8 @@
 //================================================================
 
 module csr(
-        input           clk,
-        input           reset_n,
+        input                   clk,
+        input                   reset_n,
 
         //csr instr
         input   logic [1:0]     csr_op,

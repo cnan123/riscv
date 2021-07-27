@@ -48,6 +48,7 @@ module ex_stage(
     input logic [31:0]          csr_wdata_ex,
 
     input logic                 rd_wr_en_ex,
+    input logic [TAG_WIDTH-1:0] rd_wr_tag_ex,
     input logic [4:0]           rd_wr_addr_ex,
 
     input logic                 exc_taken_ex,
@@ -66,10 +67,12 @@ module ex_stage(
     output logic [31:0]         exc_tval_mem,
 
     output logic                rd_wr_en_mem,
+    output logic [TAG_WIDTH-1:0]rd_wr_tag_mem,
     output logic [4:0]          rd_wr_addr_mem,
     output logic [31:0]         rd_wr_data_mem,
 
     output logic                forward_ex_en,
+    output logic [TAG_WIDTH-1:0]forward_ex_tag,
     output logic [4:0]          forward_ex_addr,
     output logic [31:0]         forward_ex_wdata
 );
@@ -120,7 +123,7 @@ alu u_alu(/*AUTOINST*/
 	  .alu_result			(alu_result[31:0]),
 	  .alu_result_valid		(alu_result_valid),
 	  // Inputs
-	  .operator			(alu_op_ex[ALU_NUM-1:0]), // Templated
+	  .operator			(alu_op_ex), // Templated
 	  .operator_a			(src_a_ex[31:0]),	 // Templated
 	  .operator_b			(src_b_ex[31:0]));	 // Templated
 
@@ -129,12 +132,13 @@ alu u_alu(/*AUTOINST*/
 //////////////////////////////////////////////
 //branch
 //////////////////////////////////////////////
-assign branch_taken = branch_compare_result & (~exc_taken_ex);
+assign branch_taken = branch_compare_result & (~exc_taken_ex) & alu_en_ex;
 assign branch_target_addr = pc_ex + src_c_ex;
 
 //////////////////////////////////////////////
 //branch
 //////////////////////////////////////////////
+assign jump_taken = jump_ex;
 assign jump_target_addr = adder_result;
 
 //////////////////////////////////////////////
@@ -178,6 +182,7 @@ assign lsu_wdata_mem[31:0] = rd_wr_data_mem[31:0];
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         rd_wr_en_mem            <= 1'b0;
+        rd_wr_tag_mem           <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_mem[4:0]     <= 5'h0;
         rd_wr_data_mem[31:0]    <= 32'h0;
     //end else if( valid_ex & flush_E )begin
@@ -186,6 +191,7 @@ always @(posedge clk or negedge reset_n)begin
     //    rd_wr_data_mem[31:0]    <= 32'h0;
     end else if(valid_ex)begin
         rd_wr_en_mem            <= rd_wr_en_ex;
+        rd_wr_tag_mem           <= rd_wr_tag_ex;
         rd_wr_addr_mem[4:0]     <= rd_wr_addr_ex[4:0];
         rd_wr_data_mem[31:0]    <= rd_wr_data_ex[31:0];
     end
@@ -208,7 +214,8 @@ end
 assign rd_wr_data_ex  = jump_ex     ? return_addr   :
                         lsu_en_ex   ? src_c_ex : alu_result;//TODO
 
-assign forward_ex_en    = rd_wr_en_ex & valid_ex;
+assign forward_ex_en    = rd_wr_en_ex & valid_ex & (~lsu_en_ex);
+assign forward_ex_tag   = rd_wr_tag_ex;
 assign forward_ex_addr  = rd_wr_addr_ex;
 assign forward_ex_wdata = rd_wr_data_ex;
 

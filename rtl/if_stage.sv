@@ -177,6 +177,7 @@ assign read_from_fifo = fifo_pop | hold_data_is_compress | (is_compress_intr & p
 /////////////////////////////////////////////////
 //TODO
 assign is_compress_intr = ( instruction[1:0] != 2'b11 ) & instruction_value;
+assign instr_fetch_error = 1'b0;
 
 /////////////////////////////////////////////////
 //prefetch fifo

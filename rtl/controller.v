@@ -13,7 +13,7 @@ module controller(
     input                       clk,
     input                       reset_n,
 
-    input                       jump,
+    input                       jump_taken,
     input                       branch_taken,
     input                       fence,
     input [31:0]                jump_target_addr,
@@ -42,7 +42,7 @@ module controller(
     output logic                stall_M, //reserved
     output logic                stall_W, //reserved
 
-    output                      irq_ack
+    output                      irq_taken_wb
 );
 
 // Local Variables:
@@ -67,10 +67,10 @@ logic           fsm_control_cs;
 //main code
 //
 
-assign set_pc_valid = branch_taken | jump;
+assign set_pc_valid = branch_taken | jump_taken;
 assign set_pc[31:0] = (
     ( {32{branch_taken}}    & branch_target_addr[31:0]  ) |
-    ( {32{jump}}            & jump_target_addr[31:0]    ) |
+    ( {32{jump_taken}}      & jump_target_addr[31:0]    ) |
     ( {32{exc_fetch}}       & exc_fetch_pc[31:0]        ) |
     ( {32{fence}}           & pc_if[31:0]               )
 );
@@ -78,7 +78,7 @@ assign set_pc[31:0] = (
 //////////////////////////////////////////////
 //pipeline controller
 //////////////////////////////////////////////
-assign branch_jump = branch_taken | jump;
+assign branch_jump = branch_taken | jump_taken;
 assign exc_taken = exc_taken_wb | (lsu_valid & lsu_err);
 
 assign exc_fetch = (fsm_control_cs == EXC_FLUSH);
@@ -100,6 +100,7 @@ always @(*)begin
     endcase
 end
 
+assign irq_taken_wb = 1'b0;
 
 //////////////////////////////////////////////////////
 //just need one cycle to flush pipeline

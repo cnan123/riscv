@@ -14,6 +14,7 @@ module mem_stage(
     input                       reset_n,
 
     input logic                 rd_wr_en_mem,
+    input logic [TAG_WIDTH-1:0] rd_wr_tag_mem,
     input logic [4:0]           rd_wr_addr_mem,
     input logic [31:0]          rd_wr_data_mem,
 
@@ -32,11 +33,13 @@ module mem_stage(
     input                       flush_M,
     input                       ready_wb,
     output logic                forward_mem_en,
+    output logic [TAG_WIDTH-1:0]forward_mem_tag,
     output logic [4:0]          forward_mem_addr,
     output logic [31:0]         forward_mem_wdata,
 
     //write back
     output logic                rd_wr_en_wb,
+    output logic [TAG_WIDTH-1:0]rd_wr_tag_wb,
     output logic [4:0]          rd_wr_addr_wb,
     output logic [31:0]         rd_wr_data_wb,
     output logic                lsu_en_wb,
@@ -78,7 +81,7 @@ logic			lsu_ready;		// From lsu of lsu.v
     .lsu_en     (lsu_en_mem ),
     .lsu_op     (lsu_op_mem),
     .lsu_dtype  (lsu_dtype_mem ),
-    .lsu_addr   (lsu_dtype_mem),
+    .lsu_addr   (lsu_addr_mem),
     .lsu_wdata  (lsu_wdata_mem),
 );
 */
@@ -102,7 +105,7 @@ lsu lsu(
 	.clk				(clk),
 	.reset_n			(reset_n),
 	.lsu_en				(lsu_en_mem ),		 // Templated
-	.lsu_addr			(lsu_dtype_mem),	 // Templated
+	.lsu_addr			(lsu_addr_mem),	 // Templated
 	.lsu_wdata			(lsu_wdata_mem),	 // Templated
 	.data_gnt			(data_gnt),
 	.data_rdata			(data_rdata[31:0]),
@@ -115,6 +118,7 @@ assign ready_mem = ~( ~ready_wb | ~lsu_ready | exc_taken_mem );
 assign valid_mem = ~( ~ready_wb | ~lsu_ready );
 
 assign forward_mem_en = (~lsu_en_mem) & rd_wr_en_mem;
+assign forward_mem_tag = rd_wr_tag_mem;
 assign forward_mem_addr = rd_wr_addr_mem;
 assign forward_mem_wdata = rd_wr_data_mem;
 
@@ -124,6 +128,7 @@ assign forward_mem_wdata = rd_wr_data_mem;
 always @(posedge clk or negedge reset_n)begin
     if( !reset_n )begin
         rd_wr_en_wb         <= 1'b0;
+        rd_wr_tag_wb        <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_wb       <= 5'b0;
         rd_wr_data_wb       <= 32'h0;
         lsu_en_wb           <= 1'b0;
@@ -135,6 +140,7 @@ always @(posedge clk or negedge reset_n)begin
 
     end else if( flush_M & valid_mem )begin
         rd_wr_en_wb         <= 1'b0;
+        rd_wr_tag_wb        <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_wb       <= 5'b0;
         rd_wr_data_wb       <= 32'h0;
         lsu_en_wb           <= 1'b0;
@@ -145,6 +151,7 @@ always @(posedge clk or negedge reset_n)begin
         exc_tval_wb[31:0]   <= 32'h0;
     end else if( valid_mem ) begin
         rd_wr_en_wb         <= rd_wr_en_mem;
+        rd_wr_tag_wb        <= rd_wr_tag_mem;
         rd_wr_addr_wb       <= rd_wr_addr_mem;
         rd_wr_data_wb       <= rd_wr_data_mem;
         lsu_en_wb           <= lsu_en_mem;

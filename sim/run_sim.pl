@@ -66,6 +66,7 @@ if(-e simv.daidir){ `rm -rf simv.daidir`; }
 if( ! defined($filelist) ){ $filelist = "rtl_sim.f"; }
 
 system("vcs -f $filelist $vcs_option 2>&1 | tee -a ./vcs.log");
+`echo "vcs -f $filelist $vcs_option 2>&1 | tee -a ./vcs.log" >> run_command.log`;
 
 #================================================================
 #sim

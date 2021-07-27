@@ -11,6 +11,7 @@
 
 package riscv_pkg;
 
+parameter TAG_WIDTH = 2;
     
 //////////////////////////////////////////////
 //opcodes

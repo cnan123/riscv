@@ -13,7 +13,9 @@ The puspose of this project is to implement a basic 5-stage pipeline of riscv cp
 
 ## First Stage
 
-base cpu, support IM isa
++ TODO: implement csr control regsiter prepare for interrupt
++ 2021.7.23 Refactor the CPU Pipeline
++ base cpu, support IM isa
 
 
 

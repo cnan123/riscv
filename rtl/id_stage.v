@@ -37,12 +37,15 @@ module id_stage(
 
     //write back
     input                       forward_ex_en,
+    input [TAG_WIDTH-1:0]       forward_ex_tag,
     input [4:0]                 forward_ex_addr,
     input [31:0]                forward_ex_wdata,
     input                       forward_mem_en,
+    input [TAG_WIDTH-1:0]       forward_mem_tag,
     input [4:0]                 forward_mem_addr,
     input [31:0]                forward_mem_wdata,
     input                       rf_wr_wb_en,
+    input [TAG_WIDTH-1:0]       rf_wr_wb_tag,
     input [4:0]                 rf_wr_wb_addr,
     input [31:0]                rf_wr_wb_data,
 
@@ -65,6 +68,7 @@ module id_stage(
     output logic [31:0]         csr_wdata_ex,
 
     output logic                rd_wr_en_ex,
+    output logic [TAG_WIDTH-1:0]rd_wr_tag_ex,
     output logic [4:0]          rd_wr_addr_ex,
 
     output logic                exc_taken_ex,
@@ -82,67 +86,70 @@ module id_stage(
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
 
-src_a_mux_e     src_a_mux;
-src_b_mux_e     src_b_mux;
-src_c_mux_e     src_c_mux;
+src_a_mux_e             src_a_mux;
+src_b_mux_e             src_b_mux;
+src_c_mux_e             src_c_mux;
 
-logic [31:0]    src_a_id;
-logic [31:0]    src_b_id;
-logic [31:0]    src_c_id;
+logic [31:0]            src_a_id;
+logic [31:0]            src_b_id;
+logic [31:0]            src_c_id;
 
-logic           rs1_rd_en;
-logic [4:0]     rs1_rd_addr;
-logic [31:0]    rs1_rd_data;
-logic           rs1_rd_value;
+logic                   rs1_rd_en;
+logic [4:0]             rs1_rd_addr;
+logic [31:0]            rs1_rd_data;
+logic                   rs1_rd_value;
 
-logic           rs2_rd_en;
-logic [4:0]     rs2_rd_addr;
-logic [31:0]    rs2_rd_data;
-logic           rs2_rd_value;
+logic                   rs2_rd_en;
+logic [4:0]             rs2_rd_addr;
+logic [31:0]            rs2_rd_data;
+logic                   rs2_rd_value;
 
-logic           rd_rf1_en;
-logic [4:0]     rd_rf1_addr;
-logic [31:0]    rd_rf1_data;
-logic           rd_rf1_dirty;
+logic                   rd_rf1_en;
+logic [TAG_WIDTH-1:0]   rd_rf1_tag;
+logic [4:0]             rd_rf1_addr;
+logic [31:0]            rd_rf1_data;
+logic                   rd_rf1_dirty;
 
-logic           rd_rf2_en;
-logic [4:0]     rd_rf2_addr;
-logic [31:0]    rd_rf2_data;
-logic           rd_rf2_dirty;
+logic                   rd_rf2_en;
+logic [TAG_WIDTH-1:0]   rd_rf2_tag;
+logic [4:0]             rd_rf2_addr;
+logic [31:0]            rd_rf2_data;
+logic                   rd_rf2_dirty;
 
-logic           alu_en_id;
-alu_op_e        alu_op_id;
-logic           branch_id;
-logic           jump_id;
+logic                   alu_en_id;
+alu_op_e                alu_op_id;
+logic                   branch_id;
+logic                   jump_id;
 
-logic           lsu_en_id;
-lsu_op_e        lsu_op_id;
-lsu_dtype_e     lsu_dtype_id;
+logic                   lsu_en_id;
+lsu_op_e                lsu_op_id;
+lsu_dtype_e             lsu_dtype_id;
 
-logic           csr_en_id;
-logic [1:0]     csr_op_id;
-logic [11:0]    csr_addr_id;
+logic                   csr_en_id;
+logic [1:0]             csr_op_id;
+logic [11:0]            csr_addr_id;
 
-logic           rd_wr_en_id;
-logic [4:0]     rd_wr_addr_id;
+logic                   rd_wr_en_id;
+logic [TAG_WIDTH-1:0]   rd_wr_tag_id;
+logic [4:0]             rd_wr_addr_id;
    
-logic [31:0]    imm_itype; 
-logic [31:0]    imm_stype;
-logic [31:0]    imm_utype;
-logic [31:0]    imm_btype;
-logic [31:0]    imm_jtype;
-logic [31:0]    imm_rs1;
+logic [31:0]            imm_itype; 
+logic [31:0]            imm_stype;
+logic [31:0]            imm_utype;
+logic [31:0]            imm_btype;
+logic [31:0]            imm_jtype;
+logic [31:0]            imm_rs1;
 
-logic           ecall_en;
-logic           ebreak_en;
-logic           illegal_instr;
+logic                   ecall_en;
+logic                   ebreak_en;
+logic                   illegal_instr;
 
-logic [4:0]     exc_cause;
-logic [5:0]     exc_casue_id;
+logic [4:0]             exc_cause;
+logic [5:0]             exc_casue_id;
 
-logic           read_rf_busy;
-logic           exc_taken_id;
-logic           valid_id;
+logic                   read_rf_busy;
+logic                   exc_taken_id;
+logic                   valid_id;
 
 //////////////////////////////////////////////
 //main code
@@ -229,7 +236,9 @@ decoder decoder( /*AUTOINST*/
 );
 
 
-score_board score_board (
+score_board #(
+        .TAG_WIDTH          (TAG_WIDTH)
+)score_board (
         .rs1_rd_en		    (rs1_rd_en),
         .rs1_rd_addr		(rs1_rd_addr[4:0]),
         .rs1_rd_data		(rs1_rd_data[31:0]),
@@ -242,28 +251,35 @@ score_board score_board (
 
         .rd_rf1_en		    (rd_rf1_en),
         .rd_rf1_addr		(rd_rf1_addr[4:0]),
+        .rd_rf1_tag		    (rd_rf1_tag[TAG_WIDTH-1:0]),
         .rd_rf1_data		(rd_rf1_data[31:0]),
         .rd_rf1_dirty		(rd_rf1_dirty),
 
         .rd_rf2_en		    (rd_rf2_en),
         .rd_rf2_addr		(rd_rf2_addr[4:0]),
+        .rd_rf2_tag		    (rd_rf2_tag[TAG_WIDTH-1:0]),
         .rd_rf2_data		(rd_rf2_data[31:0]),
         .rd_rf2_dirty		(rd_rf2_dirty),
 
         .forward_ex_en		(forward_ex_en),
+        .forward_ex_tag	    (forward_ex_tag[TAG_WIDTH-1:0]),
         .forward_ex_addr	(forward_ex_addr[4:0]),
         .forward_ex_wdata	(forward_ex_wdata[31:0]),
 
         .forward_mem_en		(forward_mem_en),
+        .forward_mem_tag	(forward_mem_tag[TAG_WIDTH-1:0]),
         .forward_mem_addr	(forward_mem_addr[4:0]),
         .forward_mem_wdata	(forward_mem_wdata[31:0]),
 
         .forward_wb_en		(rf_wr_wb_en),
+        .forward_wb_tag	    (rf_wr_wb_tag[TAG_WIDTH-1:0]),
         .forward_wb_addr	(rf_wr_wb_addr[4:0]),
         .forward_wb_wdata	(rf_wr_wb_data[31:0])
 );
 
-register_file rf(
+register_file #(
+        .TAG_WIDTH          (TAG_WIDTH)
+)rf(
 		 .clk			    (clk),
 		 .reset_n		    (reset_n),
 
@@ -271,17 +287,21 @@ register_file rf(
 		 .rd_ch0_addr		(rd_rf1_addr[4:0]),
 		 .rd_ch0_data		(rd_rf1_data[31:0]),
 		 .rd_ch0_dirty		(rd_rf1_dirty),
+         .rd_ch0_tag        (rd_rf1_tag[TAG_WIDTH-1:0]),
 
 		 .rd_ch1_en		    (rd_rf2_en),
 		 .rd_ch1_addr		(rd_rf2_addr[4:0]),
 		 .rd_ch1_data		(rd_rf2_data[31:0]),
 		 .rd_ch1_dirty		(rd_rf2_dirty),
+         .rd_ch1_tag        (rd_rf2_tag[TAG_WIDTH-1:0]),
 
 		 .invalid_en		(rd_wr_en_id),
 		 .invalid_addr		(rd_wr_addr_id[4:0]),
+         .new_tag           (rd_wr_tag_id[TAG_WIDTH-1:0]),
 
 		 .wr_ch0_en		    (rf_wr_wb_en),
 		 .wr_ch0_addr		(rf_wr_wb_addr[4:0]),
+         .wr_ch0_tag        (rf_wr_wb_tag[TAG_WIDTH-1:0]),
 		 .wr_ch0_data		(rf_wr_wb_data[31:0])
 );
 
@@ -323,6 +343,7 @@ always @(posedge clk or negedge reset_n)begin
         jump_ex         <= 1'b0;
 
         rd_wr_en_ex     <= 1'b0;
+        rd_wr_tag_ex    <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_ex   <= 5'h0;
     end else if( flush_D & ready_id )begin
     //flush pipeline: program flow was broken such as jump/branch/interrupt/exception
@@ -352,6 +373,7 @@ always @(posedge clk or negedge reset_n)begin
         jump_ex         <= jump_id;
 
         rd_wr_en_ex     <= rd_wr_en_id;
+        rd_wr_tag_ex    <= rd_wr_tag_id;
         rd_wr_addr_ex   <= rd_wr_addr_id;
     end
 end

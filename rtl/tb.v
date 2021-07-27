@@ -74,6 +74,7 @@ end
 
 assign boot_addr = 32'h0;
 assign fetch_enable = 1'b1;
+assign intr = 1'b0;
 
 riscv_core riscv_core(/*AUTOINST*/
 		      // Outputs

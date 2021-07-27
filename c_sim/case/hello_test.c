@@ -11,5 +11,6 @@
 
 int main( void ){
     asm("nop");
+    asm("cos x3, x2, x1");
 }
 
