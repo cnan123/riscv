@@ -18,7 +18,7 @@ AR		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-ar
 OBJCOPY	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-objcopy
 READELF	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-readelf
 
-RISCV_ARCH		:= rv32im
+RISCV_ARCH		:= rv32i
 RISCV_ABI		:= ilp32
 RISCV_MCMODEL	:= medlow
 
@@ -51,7 +51,7 @@ LD_CFLAGS += -T $(LINK_SCRIPT) -nostartfiles
 CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=$(RISCV_MCMODEL) 
-CFLAGS += -ffunction-sections -fdata-sections -fno-builtin-printf -fno-builtin-malloc -Wall -g -ffreestanding $(USER_CFLAGS)
+CFLAGS += -ffunction-sections -fdata-sections -fno-builtin-printf -fno-builtin-malloc -Wall -g -ffreestanding -O2 $(USER_CFLAGS)
 
 .PHONY : all clean
 all: $(OUTFILES)

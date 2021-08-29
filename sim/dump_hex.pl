@@ -32,13 +32,11 @@ $length =~ s/0x(.*)/\1/;
 
 $base = hex($base);
 $length = hex($length);
-print "10 $base\n";
-print "11 $length\n";
 my $end_address = $base + $length;
 my @outdata;
 
-open(MYFILE, $filename) || die ("could not open file");
-open(OUTFILE, ">", $outfile) || die ("could not open file");
+open(MYFILE, $filename) || die ("could not open file0");
+open(OUTFILE, ">", $outfile) || die ("could not open file0");
 
 while(<MYFILE>){
     chmod $_;

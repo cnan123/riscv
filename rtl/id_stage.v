@@ -16,7 +16,7 @@ module id_stage(
     input                       reset_n,
     
     //if stsge
-    input [31:0]                pc_if,
+    input [31:0]                pc_id,
     input [31:0]                instr_payload,
     input                       instr_value,
     input                       instr_fetch_error, //PMP or Bus error respone
@@ -28,8 +28,9 @@ module id_stage(
     output                      ready_id,
 
     //intr
-    input                       irq_req,
-    input [4:0]                 irq_id,
+    input                       extern_irq_taken,
+    input                       soft_irq_taken,
+    input                       timer_irq_taken,
     input                       irq_taken_wb,
     output                      irq_ack,
 
@@ -48,6 +49,13 @@ module id_stage(
     input [TAG_WIDTH-1:0]       rf_wr_wb_tag,
     input [4:0]                 rf_wr_wb_addr,
     input [31:0]                rf_wr_wb_data,
+
+    input                       clr_dirty_ex_en,
+    input [4:0]                 clr_dirty_ex_addr,
+    input                       clr_dirty_mem_en,
+    input [4:0]                 clr_dirty_mem_addr,
+    input                       clr_dirty_wb_en,
+    input [4:0]                 clr_dirty_wb_addr,
 
     output logic                jump_ex,
     output logic                branch_ex,
@@ -72,10 +80,17 @@ module id_stage(
     output logic [4:0]          rd_wr_addr_ex,
 
     output logic                exc_taken_ex,
-    output logic [5:0]          exc_cause_ex,
-    output logic [31:0]         exc_tval_ex,
+    output logic                is_ecall,
+    output logic                is_ebreak,
+    output logic                is_mret,
+    output logic                is_sret,
+    output logic                is_uret,
+    output logic                is_wfi,
+    output logic                is_illegal_instr,
+    output logic                is_instr_acs_fault,
+    output logic                is_interrupt,
 
-    output logic [31:0]         pc_id
+    output logic [31:0]         pc_ex
 );
 
 // Local Variables:
@@ -142,6 +157,10 @@ logic [31:0]            imm_rs1;
 
 logic                   ecall_en;
 logic                   ebreak_en;
+logic                   mret_en;
+logic                   sret_en;
+logic                   uret_en;
+logic                   wfi_en;
 logic                   illegal_instr;
 
 logic [4:0]             exc_cause;
@@ -232,6 +251,10 @@ decoder decoder( /*AUTOINST*/
 
 		.ecall_en		    (ecall_en),
 		.ebreak_en		    (ebreak_en),
+		.mret_en		    (mret_en),
+		.sret_en		    (sret_en),
+		.uret_en		    (uret_en),
+		.wfi_en		        (wfi_en),
 		.illegal_instr		(illegal_instr)
 );
 
@@ -283,6 +306,15 @@ register_file #(
 		 .clk			    (clk),
 		 .reset_n		    (reset_n),
 
+         .clr_dirty_ex_en   (clr_dirty_ex_en),
+         .clr_dirty_ex_addr (clr_dirty_ex_addr),
+
+         .clr_dirty_mem_en  (clr_dirty_mem_en),
+         .clr_dirty_mem_addr(clr_dirty_mem_addr),
+
+         .clr_dirty_wb_en   (clr_dirty_wb_en),
+         .clr_dirty_wb_addr (clr_dirty_wb_addr),
+
 		 .rd_ch0_en		    (rd_rf1_en),
 		 .rd_ch0_addr		(rd_rf1_addr[4:0]),
 		 .rd_ch0_data		(rd_rf1_data[31:0]),
@@ -295,7 +327,7 @@ register_file #(
 		 .rd_ch1_dirty		(rd_rf2_dirty),
          .rd_ch1_tag        (rd_rf2_tag[TAG_WIDTH-1:0]),
 
-		 .invalid_en		(rd_wr_en_id),
+		 .invalid_en		(rd_wr_en_id & ready_id & (~flush_D)),
 		 .invalid_addr		(rd_wr_addr_id[4:0]),
          .new_tag           (rd_wr_tag_id[TAG_WIDTH-1:0]),
 
@@ -311,22 +343,24 @@ register_file #(
 //////////////////////////////////////////////
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
-        pc_id[31:0] <= 32'b0;
+        pc_ex[31:0] <= 32'b0;
     end else if( valid_id ) begin
-        pc_id[31:0] <= pc_if[31:0];
+        pc_ex[31:0] <= pc_id[31:0];
     end
 end
 
 //pipeline
-assign ready_id = ( ( ~read_rf_busy ) & ready_ex & (~stall_D) ) | (exc_taken_id);
-assign valid_id = ( ~read_rf_busy ) & ready_ex & (~stall_D);
+assign stall_id = read_rf_busy | stall_D;
+
+assign ready_id = ( ( ~ ( stall_id | exc_taken_id ) ) & ready_ex );
+assign valid_id = instr_value & ( (~stall_id) & ready_ex ) ;
 
 assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_value));
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         alu_en_ex       <= 1'b0;
-        alu_op_ex       <= ALU_ADD;
+        alu_op_ex       <= ALU_NONE;
 
         lsu_en_ex       <= 1'b0;
         lsu_op_ex       <= LSU_OP_LD;
@@ -345,7 +379,7 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_en_ex     <= 1'b0;
         rd_wr_tag_ex    <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_ex   <= 5'h0;
-    end else if( flush_D & ready_id )begin
+    end else if( (flush_D & ready_id) | ((~ready_id) & ready_ex) )begin
     //flush pipeline: program flow was broken such as jump/branch/interrupt/exception
         alu_en_ex       <= 1'b0;
         lsu_en_ex       <= 1'b0;
@@ -388,44 +422,37 @@ assign csr_wdata_ex[31:0]   = src_a_ex[31:0];
 
 //=======================================================================//
 //interrupt/exception control
-//irq_req must continue to irq_ack
-//
+//if exc taken at ID stage, it will stll F/D until pipeline flush
+//if exc taken at ID stage, but last instruction is a jump/branch, it will be
+//flushed, not taken
 //=======================================================================//
 assign instr_acs_fault = (instr_value & instr_fetch_error);
 
-assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault;
-assign interrupt_taken_id = ( instr_value & irq_req );
-assign exc_taken_id       = (exception_taken_id | interrupt_taken_id) & valid_id;
+assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault | mret_en | uret_en;
 
-always @(*)begin
-    exc_cause[4:0] = 5'b0;
-    unique case(1)
-        ecall_en        :begin exc_cause = ECAUSE_ECALL; end
-        ebreak_en       :begin exc_cause = ECAUSE_EBREAK; end
-        illegal_instr   :begin exc_cause = ECAUSE_ILLEGAL_INSTR; end
-        instr_acs_fault :begin exc_cause = ECAUSE_INSTR_FAULT; end
-        default         :begin exc_cause = 5'b0; end
-    endcase
-end
+assign interrupt_taken_id   = (~flush_D) & (extern_irq_taken | soft_irq_taken | timer_irq_taken) & valid_id; 
+assign irq_ack              = irq_taken_wb;
 
-assign exc_casue_id[5:0] = exception_taken_id ? {1'b0,exc_cause[4:0]} : {1'b1, irq_id[4:0]};
-
-assign irq_ack = irq_taken_wb;
+assign exc_taken_id       = (exception_taken_id | interrupt_taken_id);
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         exc_taken_ex        <= 1'b0;
-        exc_cause_ex[5:0]   <= 6'h0;
-        exc_tval_ex[31:0]   <= 32'h0;
     end else if(valid_id & flush_D)begin
         exc_taken_ex        <= 1'b0;
-        exc_cause_ex[5:0]   <= 6'h0;
-        exc_tval_ex[31:0]   <= 32'h0;
-    end else if( valid_id & exc_taken_ex )begin
+    end else if( valid_id & (~exc_taken_ex) )begin
         exc_taken_ex        <= exception_taken_id | interrupt_taken_id;
-        exc_cause_ex[5:0]   <= exc_casue_id[5:0];
-        exc_tval_ex[31:0]   <= 32'h0; //TODO
     end
 end
+
+assign is_ecall             = ecall_en;
+assign is_ebreak            = ebreak_en;
+assign is_mret              = mret_en;
+assign is_sret              = sret_en;
+assign is_uret              = uret_en;
+assign is_wfi               = wfi_en;
+assign is_illegal_instr     = illegal_instr;
+assign is_instr_acs_fault   = instr_acs_fault;
+assign is_interrupt         = interrupt_taken_id;
 
 endmodule

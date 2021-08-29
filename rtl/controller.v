@@ -19,16 +19,40 @@ module controller(
     input [31:0]                jump_target_addr,
     input [31:0]                branch_target_addr,
     input [31:0]                pc_if,
+    input [31:0]                pc_id,
+    input [31:0]                pc_ex,
+    input [31:0]                pc_mem,
+    input [31:0]                pc_wb,
 
     output                      set_pc_valid,
     output [31:0]               set_pc,
 
-    //exception interrupt
-    input logic                 lsu_valid,
-    input logic                 lsu_err,
+    //plic
+    input logic                 extern_irq_taken,
+    input logic                 soft_irq_taken,
+    input logic                 timer_irq_taken,
+
+    //lsu exception
+    input logic                 lsu_en_wb,
+    input lsu_op_e              lsu_op_wb,
+    input logic                 lsu_valid_wb,
+    input logic                 lsu_err_wb,
+    //decoder exception
     input logic                 exc_taken_wb,
-    input logic [5:0]           exc_cause_wb,
-    input logic [31:0]          exc_tval_wb,
+    input logic                 is_mret,
+    input logic                 is_ecall,
+    input logic                 is_ebreak,
+    input logic                 is_illegal_instr,
+    input logic                 is_instr_acs_fault,
+    input logic                 is_interrupt,
+
+    //control status register
+    input privilege_e           privilege_mode, 
+    input logic [31:0]          mepc,
+    input logic [31:0]          mtvec,
+    output logic                mcause_update,
+    output mcause_e             mcause,
+    output logic                mepc_updata,
 
     //pipeline control
     output logic                flush_F,
@@ -53,8 +77,8 @@ module controller(
 /*AUTOLOGIC*/
 //////////////////////////////////////////////
 
-parameter IDLE = 1'b0;
-parameter EXC_FLUSH = 1'b1;
+parameter IDLE          = 1'b0;
+parameter EXC_FLUSH     = 1'b1;
 
 logic           branch_jump;
 logic           exc_taken;
@@ -67,7 +91,7 @@ logic           fsm_control_cs;
 //main code
 //
 
-assign set_pc_valid = branch_taken | jump_taken;
+assign set_pc_valid = branch_taken | jump_taken | (fsm_control_cs==EXC_FLUSH);
 assign set_pc[31:0] = (
     ( {32{branch_taken}}    & branch_target_addr[31:0]  ) |
     ( {32{jump_taken}}      & jump_target_addr[31:0]    ) |
@@ -79,10 +103,10 @@ assign set_pc[31:0] = (
 //pipeline controller
 //////////////////////////////////////////////
 assign branch_jump = branch_taken | jump_taken;
-assign exc_taken = exc_taken_wb | (lsu_valid & lsu_err);
+assign exc_taken = exc_taken_wb | (lsu_valid_wb & lsu_err_wb);
 
 assign exc_fetch = (fsm_control_cs == EXC_FLUSH);
-assign exc_fetch_pc = 32'h0; //TODO exception entry 
+assign exc_fetch_pc = is_mret ? mepc : { mtvec[31:8], 8'h0 };  
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
@@ -102,16 +126,50 @@ end
 
 assign irq_taken_wb = 1'b0;
 
+always @(*)begin
+    mcause_update = 1'b0;
+    mcause = MCAUSE_INSTR_ADDR_MISALIGN;
+    if(exc_taken)begin
+        if( lsu_valid_wb & lsu_err_wb )begin
+            mcause_update = 1'b1;
+            if(lsu_op_wb == LSU_OP_LD)begin
+                mcause = MCAUSE_LOAD_ACS_FAULT;
+            end else begin
+                mcause = MCAUSE_STORE_ACS_FAULT;
+            end
+        end else begin
+            unique case(1)
+                is_ecall            : begin mcause_update=1'b1;mcause = (privilege_mode == PRIV_LVL_U) ? MCAUSE_ECALL_U : MCAUSE_ECALL_M;end
+                is_ebreak           : begin mcause_update=1'b1;mcause = MCAUSE_BREAKPOINT;end
+                is_illegal_instr    : begin mcause_update=1'b1;mcause = MCAUSE_ILLEGAL_INSTR;end
+                is_instr_acs_fault  : begin mcause_update=1'b1;mcause = MCAUSE_INSTR_ACS_FAULT;end
+                is_interrupt        : begin 
+                    mcause_update=1'b1;
+                    if(extern_irq_taken)
+                        mcause = MCAUSE_M_EXTERNAL_INT;
+                    else if(soft_irq_taken)
+                        mcause = MCAUSE_M_SOFTWARE_INT;
+                    else if(timer_irq_taken)
+                        mcause = MCAUSE_M_TIMER_INT;
+                end
+                default:;
+            endcase
+        end
+    end
+end
+
+assign mepc_updata = mcause_update;
+
 //////////////////////////////////////////////////////
 //just need one cycle to flush pipeline
 //mode switch need another cycle to switch context
 //////////////////////////////////////////////////////
 
-assign flush_F  = exc_taken | branch_jump | fence;
-assign flush_D  = exc_taken | branch_jump ;
-assign flush_E  = exc_taken;
-assign flush_M  = exc_taken;
-assign flush_W  = exc_taken;
+assign flush_F  = (fsm_control_cs==EXC_FLUSH) | branch_jump | fence;
+assign flush_D  = (fsm_control_cs==EXC_FLUSH) | branch_jump ;
+assign flush_E  = (fsm_control_cs==EXC_FLUSH);
+assign flush_M  = (fsm_control_cs==EXC_FLUSH);
+assign flush_W  = (fsm_control_cs==EXC_FLUSH);
 
 //This reverserd for pipeline extern 
 assign stall_F  = 1'b0;

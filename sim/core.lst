@@ -2,7 +2,6 @@
 +incdir+${PROJ_PATH}/rtl
 
 ${PROJ_PATH}/rtl/riscv_pkg.sv 
-${PROJ_PATH}/rtl/alu.sv
 
 ${PROJ_PATH}/rtl/if_stage.sv
 ${PROJ_PATH}/rtl/sync_fifo.v
@@ -12,12 +11,16 @@ ${PROJ_PATH}/rtl/score_board.sv
 ${PROJ_PATH}/rtl/id_stage.v
 
 ${PROJ_PATH}/rtl/ex_stage.v
+${PROJ_PATH}/rtl/alu.sv
+${PROJ_PATH}/rtl/csr.sv
 
 ${PROJ_PATH}/rtl/lsu.sv
 ${PROJ_PATH}/rtl/mem_stage.v
 ${PROJ_PATH}/rtl/wb_stage.sv
 ${PROJ_PATH}/rtl/register_file.v
 ${PROJ_PATH}/rtl/controller.v
+
+${PROJ_PATH}/rtl/plic.sv
 
 ${PROJ_PATH}/rtl/riscv_core.v
 

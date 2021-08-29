@@ -87,6 +87,7 @@ parameter BRANCH_BGEU       = 6'b10_0000;
 parameter ALU_OP_WIDTH      = 6;
 
 typedef enum logic [ALU_OP_WIDTH-1:0] {
+    ALU_NONE          = 6'b00_0000,
     // adder
     ALU_ADD           = 6'b00_0001,
     ALU_SUB           = 6'b00_0010,
@@ -282,7 +283,6 @@ parameter HGATP             = 12'h680;
 parameter HTIMEDELTA        = 12'h605;
 parameter HTIMEDELTAH       = 12'h615;
 
-
 //virtual supervisor regsiter
 parameter VSSTATUS          = 12'h200;
 parameter VSIE              = 12'h204;
@@ -414,9 +414,44 @@ typedef struct packed {
       logic         uie;    // user interrupts enable - hardwired to zero
 } status_rv_t;
 
-parameter ECAUSE_ECALL = 5'd1; //Templete
-parameter ECAUSE_EBREAK = 5'd2; //Templete
-parameter ECAUSE_ILLEGAL_INSTR = 5'd3; //Templete
-parameter ECAUSE_INSTR_FAULT = 5'd4; //Templete
+parameter BIT_MSTATUS_MIE       = 3;
+parameter BIT_MSTATUS_MPIE      = 7;
+parameter BIT_MSTATUS_MPP_MSB   = 12;
+parameter BIT_MSTATUS_MPP_LSB   = 11;
+
+
+typedef enum logic [5:0] {
+    MCAUSE_INSTR_ADDR_MISALIGN  = {1'b0, 5'd0},
+    MCAUSE_INSTR_ACS_FAULT      = {1'b0, 5'd1},
+    MCAUSE_ILLEGAL_INSTR        = {1'b0, 5'd2},
+    MCAUSE_BREAKPOINT           = {1'b0, 5'd3},
+    MCAUSE_LOAD_ADDR_MISALIGN   = {1'b0, 5'd4},
+    MCAUSE_LOAD_ACS_FAULT       = {1'b0, 5'd5},
+    MCAUSE_STORE_ADDR_MISALIGN  = {1'b0, 5'd6},
+    MCAUSE_STORE_ACS_FAULT      = {1'b0, 5'd7},
+    MCAUSE_ECALL_U              = {1'b0, 5'd8},
+    MCAUSE_ECALL_S              = {1'b0, 5'd9},
+    MCAUSE_ECALL_M              = {1'b0, 5'd11},
+    MCAUSE_INSTR_PAGE_FAULT     = {1'b0, 5'd12},
+    MCAUSE_LOAD_PAGE_FAULT      = {1'b0, 5'd13},
+    MCAUSE_STORE_PAGE_FAULT     = {1'b0, 5'd15},
+    MCAUSE_S_SOFTWARE_INT       = {1'b1, 5'd1},
+    MCAUSE_M_SOFTWARE_INT       = {1'b1, 5'd3},
+    MCAUSE_S_TIMER_INT          = {1'b1, 5'd5},
+    MCAUSE_M_TIMER_INT          = {1'b1, 5'd7},
+    MCAUSE_S_EXTERNAL_INT       = {1'b1, 5'd9},
+    MCAUSE_M_EXTERNAL_INT       = {1'b1, 5'd11}
+} mcause_e;
+
+typedef enum logic [1:0] {
+    PRIV_LVL_M = 2'b11,
+    PRIV_LVL_S = 2'b01,
+    PRIV_LVL_U = 2'b00
+} privilege_e;
+
+
+parameter BIT_MIE_MEIE = 11;
+parameter BIT_MIE_MTIE = 7;
+parameter BIT_MIE_MSIE = 3;
 
 endpackage

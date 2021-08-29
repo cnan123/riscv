@@ -41,9 +41,11 @@ module tb_memory(
 
 //////////////////////////////////////////////
 //main code
-parameter DEPTH         = 4096;
+parameter DEPTH         = 16384*4;
 parameter ADDR_WIDTH    = $clog2(DEPTH);
 
+parameter ADDR_L    = 0;
+parameter ADDR_H    = 16'hffff;
 
 logic [31:0]    mem    [0:DEPTH-1];
 logic [1:0]     req;
@@ -58,28 +60,58 @@ logic [31:0]    mem_rdata;
 logic [ADDR_WIDTH-1:0] mem_addr;
 logic [31:0]    data_mask;
 
+
+logic instr_match_mem,data_match_mem;
+logic instr_match_none,data_match_none;
+logic match_none_instr_pick,match_none_data_pick;
+
+//////////////////////////////////////////////
+//response 
+//////////////////////////////////////////////
+assign instr_gnt            = (instr_match_mem & grant[0]) | instr_match_none;
+assign instr_rdata[31:0]    = instr_pick ? mem_rdata[31:0] : 32'hdeadbeef;
+assign instr_valid          = instr_pick | match_none_instr_pick;
+assign instr_err            = 1'b0;
+
+assign data_gnt             = (data_match_mem & grant[1]) | data_match_none;
+assign data_rdata[31:0]     = data_pick ? mem_rdata[31:0] : 32'hdeadbeef;
+assign data_valid           = data_pick | match_none_data_pick;
+
+//////////////////////////////////////////////
+// router
+//////////////////////////////////////////////
+
+assign instr_match_mem  = instr_req & ( instr_addr >= ADDR_L ) & (instr_addr <= ADDR_H );
+assign data_match_mem   = data_req & ( data_addr >= ADDR_L ) & (data_addr <= ADDR_H );
+
+assign instr_match_none = instr_req & (~instr_match_mem);
+assign data_match_none = data_req & (~data_match_mem);
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        match_none_instr_pick <= 1'b0;
+        match_none_data_pick <= 1'b0;
+    end else begin
+        match_none_instr_pick   <= instr_match_none;
+        match_none_data_pick    <= data_match_none;
+    end
+end
+
 //////////////////////////////////////////////
 //arbiter
 //////////////////////////////////////////////
 
-assign req[1:0] = {data_req, instr_req};
+assign req[0]   = instr_match_mem;
+assign req[1]   = data_match_mem;
 
-assign instr_gnt            = grant[0];
-assign instr_rdata[31:0]    = mem_rdata[31:0];
-assign instr_valid          = instr_pick;
-assign instr_err            = 1'b0;
-
-assign data_gnt             = grant[1];
-assign data_rdata[31:0]     = mem_rdata[31:0];
-assign data_valid           = data_pick;
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         instr_pick <= 1'b0;
         data_pick <= 1'b0;
     end else begin
-        instr_pick <= instr_req & grant[0];
-        data_pick <= data_req & grant[1];
+        instr_pick <= req[0] & grant[0];
+        data_pick <= req[1] & grant[1];
     end
 end
 

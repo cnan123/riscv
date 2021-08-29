@@ -13,6 +13,7 @@ module mem_stage(
     input                       clk,
     input                       reset_n,
 
+    input logic [31:0]          pc_mem,
     input logic                 rd_wr_en_mem,
     input logic [TAG_WIDTH-1:0] rd_wr_tag_mem,
     input logic [4:0]           rd_wr_addr_mem,
@@ -25,17 +26,19 @@ module mem_stage(
     input logic [31:0]          lsu_wdata_mem,
     
     input logic                 exc_taken_mem,
-    input logic [5:0]           exc_cause_mem,
-    input logic [31:0]          exc_tval_mem,
 
     //controller
-    output                      ready_mem,
     input                       flush_M,
+
     input                       ready_wb,
+    output                      ready_mem,
     output logic                forward_mem_en,
     output logic [TAG_WIDTH-1:0]forward_mem_tag,
     output logic [4:0]          forward_mem_addr,
     output logic [31:0]         forward_mem_wdata,
+
+    output logic                clr_dirty_mem_en,
+    output logic [4:0]          clr_dirty_mem_addr,
 
     //write back
     output logic                rd_wr_en_wb,
@@ -43,13 +46,12 @@ module mem_stage(
     output logic [4:0]          rd_wr_addr_wb,
     output logic [31:0]         rd_wr_data_wb,
     output logic                lsu_en_wb,
-    output logic                wb_data_mux,
-    output logic [31:0]         lsu_rdata,
-    output logic                lsu_valid,
-    output logic                lsu_err,
+    output lsu_op_e             lsu_op_wb,
+    output logic [31:0]         lsu_rdata_wb,
+    output logic                lsu_valid_wb,
+    output logic                lsu_err_wb,
     output logic                exc_taken_wb,
-    output logic [5:0]          exc_cause_wb,
-    output logic [31:0]         exc_tval_wb,
+    output logic [31:0]         pc_wb,
 
     //LSU
     output logic                data_req,
@@ -83,6 +85,9 @@ logic			lsu_ready;		// From lsu of lsu.v
     .lsu_dtype  (lsu_dtype_mem ),
     .lsu_addr   (lsu_addr_mem),
     .lsu_wdata  (lsu_wdata_mem),
+    .lsu_rdata  (lsu_rdata_wb[]),
+    .lsu_valid  (lsu_valid_wb),
+    .lsu_err    (lsu_err_wb),
 );
 */
 
@@ -93,9 +98,9 @@ lsu lsu(
 	.lsu_dtype			(lsu_dtype_mem ),	 // Templated
 	// Outputs
 	.lsu_ready			(lsu_ready),
-	.lsu_rdata			(lsu_rdata[31:0]),
-	.lsu_valid			(lsu_valid),
-	.lsu_err			(lsu_err),
+	.lsu_rdata			(lsu_rdata_wb[31:0]),	 // Templated
+	.lsu_valid			(lsu_valid_wb),		 // Templated
+	.lsu_err			(lsu_err_wb),		 // Templated
 	.data_req			(data_req),
 	.data_wr			(data_wr),
 	.data_addr			(data_addr[31:0]),
@@ -105,7 +110,7 @@ lsu lsu(
 	.clk				(clk),
 	.reset_n			(reset_n),
 	.lsu_en				(lsu_en_mem ),		 // Templated
-	.lsu_addr			(lsu_addr_mem),	 // Templated
+	.lsu_addr			(lsu_addr_mem),		 // Templated
 	.lsu_wdata			(lsu_wdata_mem),	 // Templated
 	.data_gnt			(data_gnt),
 	.data_rdata			(data_rdata[31:0]),
@@ -114,13 +119,16 @@ lsu lsu(
 
 assign lsu_en = lsu_en_mem & (~ready_wb) & (~flush_M);
 
-assign ready_mem = ~( ~ready_wb | ~lsu_ready | exc_taken_mem );      
-assign valid_mem = ~( ~ready_wb | ~lsu_ready );
+assign ready_mem = ready_wb & lsu_ready;      
+assign valid_mem = lsu_ready;
 
 assign forward_mem_en = (~lsu_en_mem) & rd_wr_en_mem;
 assign forward_mem_tag = rd_wr_tag_mem;
 assign forward_mem_addr = rd_wr_addr_mem;
 assign forward_mem_wdata = rd_wr_data_mem;
+
+assign clr_dirty_mem_en     = forward_mem_en & flush_M;
+assign clr_dirty_mem_addr   = forward_mem_addr;
 
 //////////////////////////////////////////////
 //write back
@@ -132,34 +140,29 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_addr_wb       <= 5'b0;
         rd_wr_data_wb       <= 32'h0;
         lsu_en_wb           <= 1'b0;
-        wb_data_mux         <= 1'b0;
+        lsu_op_wb           <= LSU_OP_LD;
 
         exc_taken_wb        <= 1'b0;
-        exc_cause_wb[5:0]   <= 6'h0;
-        exc_tval_wb[31:0]   <= 32'h0;
-
-    end else if( flush_M & valid_mem )begin
+        pc_wb               <= 32'h0;
+    end else if( (flush_M & valid_mem) | ((~valid_mem) & ready_wb) )begin
         rd_wr_en_wb         <= 1'b0;
         rd_wr_tag_wb        <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_wb       <= 5'b0;
         rd_wr_data_wb       <= 32'h0;
         lsu_en_wb           <= 1'b0;
-        wb_data_mux         <= 1'b0;
+        lsu_op_wb           <= LSU_OP_LD;
 
         exc_taken_wb        <= 1'b0;
-        exc_cause_wb[5:0]   <= 6'h0;
-        exc_tval_wb[31:0]   <= 32'h0;
     end else if( valid_mem ) begin
         rd_wr_en_wb         <= rd_wr_en_mem;
         rd_wr_tag_wb        <= rd_wr_tag_mem;
         rd_wr_addr_wb       <= rd_wr_addr_mem;
         rd_wr_data_wb       <= rd_wr_data_mem;
         lsu_en_wb           <= lsu_en_mem;
-        wb_data_mux         <= lsu_en_mem & (lsu_op_mem == LSU_OP_LD);
+        lsu_op_wb           <= lsu_op_mem;
 
         exc_taken_wb        <= exc_taken_mem;
-        exc_cause_wb[5:0]   <= exc_cause_mem[5:0];
-        exc_tval_wb[31:0]   <= exc_tval_mem[31:0];
+        pc_wb               <= pc_mem;
     end
 end
 

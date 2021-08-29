@@ -47,6 +47,9 @@ zero_loop:
     ble x26, x27, zero_loop
 zero_loop_end:
 
+    la x10, _vecter_entry
+    csrrw x0, mtvec, x10
+
     addi x10, x0, 0
     addi x11, x0, 0
     //call _init
@@ -59,6 +62,7 @@ loop:
 .section .vectors, "ax"
 .option norvc
 .org 0x00
+_vecter_entry:
 .rept 32
     jal x0, default_common_vector 
 .endr

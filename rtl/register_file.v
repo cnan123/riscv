@@ -15,6 +15,13 @@ module register_file#(
         input                       clk,
         input                       reset_n,
 
+        input                       clr_dirty_ex_en,
+        input [4:0]                 clr_dirty_ex_addr,
+        input                       clr_dirty_mem_en,
+        input [4:0]                 clr_dirty_mem_addr,
+        input                       clr_dirty_wb_en,
+        input [4:0]                 clr_dirty_wb_addr,
+
         input                       invalid_en,
         input [4:0]                 invalid_addr,
         output [TAG_WIDTH-1:0]      new_tag,
@@ -47,6 +54,7 @@ module register_file#(
 
 logic [31:0] MEM [31:0];
 logic [31:0] dirty_en;
+logic [31:0] clr_dirty;
 logic [TAG_WIDTH-1:0] tag [31:0];
 logic [TAG_WIDTH-1:0] tag_n [31:0];
 
@@ -69,8 +77,16 @@ for(genvar n=1; n<32; n=n+1)begin: register
         end
     end
     
+    assign clr_dirty[n] = (
+        ( clr_dirty_ex_en   & (clr_dirty_ex_addr==n)    ) |
+        ( clr_dirty_mem_en  & (clr_dirty_mem_addr==n)   ) |
+        ( clr_dirty_wb_en   & (clr_dirty_wb_addr==n)    )
+    );
+
     always @(posedge clk or negedge reset_n)begin
         if(!reset_n)begin
+            dirty_en[n] <= 1'b0;
+        end else if(clr_dirty[n])begin
             dirty_en[n] <= 1'b0;
         end else if(invalid_en & (invalid_addr==n))begin
             dirty_en[n] <= 1'b1;

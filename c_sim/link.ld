@@ -5,7 +5,7 @@ MEMORY
 {
     rom             : ORIGIN = 0x00000000, LENGTH = 0x1000 
     vector         : ORIGIN = 0x00001000, LENGTH = 0x400 /*1KB*/
-    sram            : ORIGIN = 0x00010000, LENGTH = 0x10000
+    sram            : ORIGIN = 0x00002000, LENGTH = 0x4000
 }
 
 _min_stack      = 0x2000;

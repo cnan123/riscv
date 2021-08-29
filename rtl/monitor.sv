@@ -27,16 +27,32 @@
 
 parameter CMD_ADDR = 32'hffff_fffc;
 parameter ARG_ADDR = 32'hffff_fff8;
+parameter PRINT_ADDR = 32'hffff_fff4;
 
-`define PASS 32'h0
-`define FAIL 32'h1
+`define PASS        32'h0
+`define ISA_FAIL    32'h1
+`define C_FAIL      32'h2
+`define IRQ         32'h3
+
+`define EXTERN_IRQ_REQ  32'h0
+`define SOFT_IRQ_REQ    32'h1
+`define TIMER_IRQ_REQ   32'h2
+`define EXTERN_IRQ_RLS  32'h3
+`define SOFT_IRQ_RLS    32'h4
+`define TIMER_IRQ_RLS   32'h5
 
 class monitor;
     
+    function new();
+        extern_irq = 1'b0;
+        soft_irq = 1'b0;
+        timer_irq = 1'b0;
+    endfunction
+
     task main;
         fork
             sim_control;
-            //print;
+            print;
         join
     endtask
 
@@ -62,32 +78,76 @@ class monitor;
         end
     endtask
 
+    task wait_print_data;
+        output logic [7:0] arg;
+        while(1)begin
+            @(posedge `CLK);
+            if( `MONITOR_PATH.data_req & `MONITOR_PATH.data_wr & `MONITOR_PATH.data_addr==PRINT_ADDR )begin
+                arg = `MONITOR_PATH.data_wdata[7:0];
+                //$display("arg: %c",arg);
+                break;
+            end
+        end
+    endtask
+
+
     task sim_control;
         logic [31:0] cmd;
 
-        wait_cmd(cmd);
-        if( cmd == `PASS        ) pass;
-        else if( cmd == `FAIL   ) fail;
+        while(1)begin
+            wait_cmd(cmd);
+            case(cmd)
+                `PASS       :pass;
+                `ISA_FAIL   :isa_fail;
+                `C_FAIL     :c_fail;
+                `IRQ        :irq; 
+            endcase
+        end
     endtask
 
     task pass;
         $display(">>>>>> PASS <<<<<<");
-        #1000;
+        @(posedge `CLK);
         $finish;
     endtask
 
-    task fail;
+    task c_fail;
+        $display(">>>>>> FAIL <<<<<<");
+        @(posedge `CLK);
+        $finish;
+    endtask
+
+    task isa_fail;
         logic [31:0] arg;
 
         wait_arg(arg);
         $display(">>>>>> FAIL <<<<<<");
         $display(">>>>>>ID: %x<<<<<<",arg);
-        #1000;
+        @(posedge `CLK);
         $finish;
     endtask
 
+    task irq;
+        logic [31:0] arg;
+        wait_arg(arg);
+        case(arg)
+            `EXTERN_IRQ_REQ: extern_irq = 1'b1;
+            `EXTERN_IRQ_RLS: extern_irq = 1'b0;
+            `SOFT_IRQ_REQ: soft_irq = 1'b1;
+            `SOFT_IRQ_RLS: soft_irq = 1'b0;
+            `TIMER_IRQ_REQ: timer_irq = 1'b1;
+            `TIMER_IRQ_RLS: timer_irq = 1'b0;
+            default:;
+        endcase
+    endtask
+
     task print;
-        $display(">>>>>> PRINT <<<<<<");
+        logic [7:0] arg;
+        while(1) begin
+            wait_print_data(arg);
+            $write("%c",arg);
+        end
+        //$display("arg: %c",arg);
     endtask
 
 endclass
