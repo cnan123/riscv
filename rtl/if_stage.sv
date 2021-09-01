@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : if_stage.sv
 //   Auther       : cnan
-//   Created On   : 2021年02月28日
+//   Created On   : 2021.02.28
 //   Description  : 
 //
 //
@@ -26,6 +26,7 @@ module if_stage#(
     input [31:0]            set_pc,
     
     //decoder
+    output logic [31:0]     pc_if,
     output logic [31:0]     pc_id,
     output logic [31:0]     instr_payload_id,
     output logic            instr_value_id,
@@ -88,8 +89,6 @@ logic           fifo_rdata_valid;
 logic           fifo_empty;
 
 logic           ready_if;
-
-logic [31:0]    pc_if;
 
 parameter IDLE      = 2'd0;
 parameter WAIT_GNT  = 2'd1;

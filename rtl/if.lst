@@ -1,7 +1,0 @@
-
-+incdir+${PROJ_PATH}/rtl
-
-${PROJ_PATH}/rtl/if_stage.sv
-${PROJ_PATH}/rtl/sync_fifo.v
-
-${PROJ_PATH}/rtl/if_stage_bench.v

@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : alu.sv
 //   Auther       : cnan
-//   Created On   : 2021年04月30日
+//   Created On   : 2021.04.30
 //   Description  : 
 //
 //

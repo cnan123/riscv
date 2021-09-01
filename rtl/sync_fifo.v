@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : sync_fifo.v
-//   Auther       : cnan1
-//   Created On   : 2021年03月13日
+//   Auther       : cnan
+//   Created On   : 2021.03.13
 //   Description  : 
 //
 //

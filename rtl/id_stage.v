@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : id_stage.v
 //   Auther       : cnan
-//   Created On   : 2021年04月02日
+//   Created On   : 2021.04.02
 //   Description  : 
 //
 //
@@ -19,7 +19,7 @@ module id_stage(
     input [31:0]                pc_id,
     input [31:0]                instr_payload,
     input                       instr_value,
-    input                       instr_fetch_error, //PMP or Bus error respone
+    input                       instr_fetch_error, //PMP or Bus error respone. TODO
 
     //pipeline control
     input                       stall_D,
@@ -86,6 +86,7 @@ module id_stage(
     output logic                is_sret,
     output logic                is_uret,
     output logic                is_wfi,
+    output logic                is_fence,
     output logic                is_illegal_instr,
     output logic                is_instr_acs_fault,
     output logic                is_interrupt,
@@ -161,6 +162,7 @@ logic                   mret_en;
 logic                   sret_en;
 logic                   uret_en;
 logic                   wfi_en;
+logic                   fence_en;
 logic                   illegal_instr;
 
 logic [4:0]             exc_cause;
@@ -255,6 +257,7 @@ decoder decoder( /*AUTOINST*/
 		.sret_en		    (sret_en),
 		.uret_en		    (uret_en),
 		.wfi_en		        (wfi_en),
+		.fence_en		    (fence_en),
 		.illegal_instr		(illegal_instr)
 );
 
@@ -428,7 +431,7 @@ assign csr_wdata_ex[31:0]   = src_a_ex[31:0];
 //=======================================================================//
 assign instr_acs_fault = (instr_value & instr_fetch_error);
 
-assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault | mret_en | uret_en;
+assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault | mret_en | uret_en | fence_en;
 
 assign interrupt_taken_id   = (~flush_D) & (extern_irq_taken | soft_irq_taken | timer_irq_taken) & valid_id; 
 assign irq_ack              = irq_taken_wb;
@@ -451,6 +454,7 @@ assign is_mret              = mret_en;
 assign is_sret              = sret_en;
 assign is_uret              = uret_en;
 assign is_wfi               = wfi_en;
+assign is_fence             = fence_en;
 assign is_illegal_instr     = illegal_instr;
 assign is_instr_acs_fault   = instr_acs_fault;
 assign is_interrupt         = interrupt_taken_id;

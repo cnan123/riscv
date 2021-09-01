@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : riscv_core.v
 //   Auther       : cnan
-//   Created On   : 2021年04月05日
+//   Created On   : 2021.04.05
 //   Description  : 
 //
 //
@@ -89,6 +89,7 @@ logic			irq_taken_wb;		// From controller of controller.v
 logic			is_compress_intr;	// From if_stage of if_stage.v
 logic			is_ebreak;		// From id_stage of id_stage.v
 logic			is_ecall;		// From id_stage of id_stage.v
+logic			is_fence;		// From id_stage of id_stage.v
 logic			is_illegal_instr;	// From id_stage of id_stage.v
 logic			is_instr_acs_fault;	// From id_stage of id_stage.v
 logic			is_interrupt;		// From id_stage of id_stage.v
@@ -115,6 +116,7 @@ logic			mstatus_mie;		// From ex_stage of ex_stage.v
 logic [31:0]		mtvec;			// From ex_stage of ex_stage.v
 logic [31:0]		pc_ex;			// From id_stage of id_stage.v
 logic [31:0]		pc_id;			// From if_stage of if_stage.v
+logic [31:0]		pc_if;			// From if_stage of if_stage.v
 logic [31:0]		pc_mem;			// From ex_stage of ex_stage.v
 logic [31:0]		pc_wb;			// From mem_stage of mem_stage.v
 logic [4:0]		rd_wr_addr_ex;		// From id_stage of id_stage.v
@@ -184,6 +186,7 @@ privilege_e         privilege_mode;
 if_stage if_stage(
     /*AUTOINST*/
 		  // Outputs
+		  .pc_if		(pc_if[31:0]),
 		  .pc_id		(pc_id[31:0]),
 		  .instr_payload_id	(instr_payload_id[31:0]),
 		  .instr_value_id	(instr_value_id),
@@ -245,6 +248,7 @@ id_stage id_stage(
 		  .is_sret		(is_sret),
 		  .is_uret		(is_uret),
 		  .is_wfi		(is_wfi),
+		  .is_fence		(is_fence),
 		  .is_illegal_instr	(is_illegal_instr),
 		  .is_instr_acs_fault	(is_instr_acs_fault),
 		  .is_interrupt		(is_interrupt),
@@ -476,6 +480,7 @@ controller controller(/*AUTOINST*/
 		      .is_mret		(is_mret),
 		      .is_ecall		(is_ecall),
 		      .is_ebreak	(is_ebreak),
+		      .is_fence		(is_fence),
 		      .is_illegal_instr	(is_illegal_instr),
 		      .is_instr_acs_fault(is_instr_acs_fault),
 		      .is_interrupt	(is_interrupt),

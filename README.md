@@ -25,15 +25,16 @@ The puspose of this project is to implement a basic 5-stage pipeline of riscv cp
 	+ doc( document )
 	+ riscv_riscv-tests(riscv isa test case)
 	+ rtl( rtl )
-	+script
+	+ script
 	+ sim(run case)
 	
 * Started
 ```
 $ source setenv
 $ cd sim
-$ ./run_sim.pl -module case -case hello_test -fl core.lst
-$ verdi -sv -f corelist -ssf verilog.fsdb
+$ cd work
+$ run_sim.pl -module case -case hello_test
+$ verdi -sv -f sim.lst -ssf verilog.fsdb
 ```
 
 ## First Stage

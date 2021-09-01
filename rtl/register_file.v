@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : register_file.v
 //   Auther       : cnan
-//   Created On   : 2021年04月05日
+//   Created On   : 2021.04.05
 //   Description  : 
 //
 //

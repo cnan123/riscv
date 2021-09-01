@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : riscv_pkg.sv
 //   Auther       : cnan
-//   Created On   : 2021年05月04日
+//   Created On   : 2021.05.04
 //   Description  : 
 //
 //

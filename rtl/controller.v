@@ -1,9 +1,9 @@
 //================================================================
-//   Copyright (C) 2021 Sangfor Ltd. All rights reserved.
+//   Copyright (C) 2021. All rights reserved.
 //
 //   Filename     : controller.v
 //   Auther       : cnan
-//   Created On   : 2021年04月11日
+//   Created On   : 2021.04.11
 //   Description  : 
 //
 //
@@ -42,6 +42,7 @@ module controller(
     input logic                 is_mret,
     input logic                 is_ecall,
     input logic                 is_ebreak,
+    input logic                 is_fence,
     input logic                 is_illegal_instr,
     input logic                 is_instr_acs_fault,
     input logic                 is_interrupt,
@@ -106,7 +107,10 @@ assign branch_jump = branch_taken | jump_taken;
 assign exc_taken = exc_taken_wb | (lsu_valid_wb & lsu_err_wb);
 
 assign exc_fetch = (fsm_control_cs == EXC_FLUSH);
-assign exc_fetch_pc = is_mret ? mepc : { mtvec[31:8], 8'h0 };  
+assign exc_fetch_pc = (
+    is_mret ? mepc : 
+    is_fence ? pc_if : { mtvec[31:8], 8'h0 }
+);  
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin

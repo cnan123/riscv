@@ -11,5 +11,5 @@
 
 export PROJ_PATH="/home/cnan/tree/eagle_tree/study/riscv/riscv" 
 
-
+export export PATH=$PATH:$PROJ_PATH/script
 
