@@ -1,0 +1,3 @@
+
+-f ${PROJ_PATH}/sim/tb/tb.lst
+-f ${PROJ_PATH}/rtl/riscv.lst
