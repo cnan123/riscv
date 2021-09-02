@@ -80,23 +80,25 @@ end
 
 assign data_req     = lsu_en;
 assign data_addr    = unalign_q ? lsu_addr+4 : lsu_addr;
-assign data_wdata   = lsu_wdata;
 assign data_wr      = (lsu_op == LSU_OP_WR);
 
 assign addr_offset[1:0] = lsu_addr[1:0];
 
 always @(*)begin
-    data_be[3:0] = 4'h0;
+    data_be[3:0]        = 4'h0;
+    data_wdata[31:0]    = 32'h0;
     case( lsu_dtype[1:0] )
         BYTE:begin
-                case( addr_offset[1:0] )
-                    2'b00: data_be[3:0] = 4'b0001;
-                    2'b01: data_be[3:0] = 4'b0010;
-                    2'b10: data_be[3:0] = 4'b0100;
-                    2'b11: data_be[3:0] = 4'b1000;
-                endcase
+             data_wdata[31:0] = {4{lsu_wdata[7:0]}};
+             case( addr_offset[1:0] )
+                 2'b00: data_be[3:0] = 4'b0001;
+                 2'b01: data_be[3:0] = 4'b0010;
+                 2'b10: data_be[3:0] = 4'b0100;
+                 2'b11: data_be[3:0] = 4'b1000;
+             endcase
         end
         HALF_WORD:begin
+            data_wdata[31:0] = {2{lsu_wdata[15:0]}};
             case( addr_offset[1:0] )
                     2'b00: data_be[3:0] = 4'b0011;
                     2'b01: data_be[3:0] = 4'b0110;
@@ -108,6 +110,7 @@ always @(*)begin
             endcase
         end
         WORD:begin
+            data_wdata[31:0] = lsu_wdata[31:0];
             case( addr_offset[1:0] )
                 2'b00: data_be[3:0] = 4'b1111;
                 2'b01: begin

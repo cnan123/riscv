@@ -128,7 +128,7 @@ always @(*)begin
     endcase
 end
 
-assign irq_taken_wb = 1'b0;
+assign irq_taken_wb = 1'b0; //TODO 
 
 always @(*)begin
     mcause_update = 1'b0;
