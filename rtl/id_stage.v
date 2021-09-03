@@ -355,8 +355,8 @@ end
 //pipeline
 assign stall_id = read_rf_busy | stall_D;
 
-assign ready_id = ( ( ~ ( stall_id | exc_taken_id ) ) & ready_ex );
-assign valid_id = instr_value & ( (~stall_id) & ready_ex ) ;
+assign ready_id = (~stall_id) & ready_ex & (~exc_taken_id);
+assign valid_id = (~stall_id) & ready_ex ;
 
 assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_value));
 
@@ -426,8 +426,8 @@ assign csr_wdata_ex[31:0]   = src_a_ex[31:0];
 //=======================================================================//
 //interrupt/exception control
 //if exc taken at ID stage, it will stll F/D until pipeline flush
-//if exc taken at ID stage, but last instruction is a jump/branch, it will be
-//flushed, not taken
+//only ready_ex the control can get exc status because it can be mask by
+//EX/MEM/WB stage's exc
 //=======================================================================//
 assign instr_acs_fault = (instr_value & instr_fetch_error);
 
@@ -441,22 +441,22 @@ assign exc_taken_id       = (exception_taken_id | interrupt_taken_id);
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         exc_taken_ex        <= 1'b0;
-    end else if(valid_id & flush_D)begin
+    end else if( (valid_id & flush_D) | (~valid_id & ready_ex)  )begin
         exc_taken_ex        <= 1'b0;
     end else if( valid_id & (~exc_taken_ex) )begin
         exc_taken_ex        <= exception_taken_id | interrupt_taken_id;
     end
 end
 
-assign is_ecall             = ecall_en;
-assign is_ebreak            = ebreak_en;
-assign is_mret              = mret_en;
-assign is_sret              = sret_en;
-assign is_uret              = uret_en;
-assign is_wfi               = wfi_en;
-assign is_fence             = fence_en;
-assign is_illegal_instr     = illegal_instr;
-assign is_instr_acs_fault   = instr_acs_fault;
-assign is_interrupt         = interrupt_taken_id;
+assign is_ecall             = ready_ex & ecall_en;
+assign is_ebreak            = ready_ex & ebreak_en;
+assign is_mret              = ready_ex & mret_en;
+assign is_sret              = ready_ex & sret_en;
+assign is_uret              = ready_ex & uret_en;
+assign is_wfi               = ready_ex & wfi_en;
+assign is_fence             = ready_ex & fence_en;
+assign is_illegal_instr     = ready_ex & illegal_instr;
+assign is_instr_acs_fault   = ready_ex & instr_acs_fault;
+assign is_interrupt         = ready_ex & interrupt_taken_id;
 
 endmodule

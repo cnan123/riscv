@@ -10,7 +10,9 @@
 //================================================================
 import riscv_pkg::*;
 
-module ex_stage(
+module ex_stage#(
+    parameter ILLEGAL_CSR_EN = 1'b0
+)(
     input                       clk,
     input                       reset_n,
 
@@ -62,6 +64,7 @@ module ex_stage(
     output logic [31:0]         lsu_wdata_mem,
     
     output logic                exc_taken_mem,
+    output logic                is_illegal_csr,
 
     output logic                rd_wr_en_mem,
     output logic [TAG_WIDTH-1:0]rd_wr_tag_mem,
@@ -122,6 +125,8 @@ logic           multicycle_instr;
 logic           multicycle_ready;
 logic           load;
 logic           store;
+
+logic           exc_ex;
 //////////////////////////////////////////////
 //main code
 
@@ -201,8 +206,8 @@ assign jump_target_addr = adder_result;
 
 assign multicycle_busy = multicycle_instr & (~multicycle_ready);
 
-assign ready_ex = ~( stall_E | (~ready_mem) | multicycle_busy );
-assign valid_ex = ~( stall_E | (~ready_mem) | multicycle_busy );
+assign ready_ex = (~stall_E) & ready_mem & (~multicycle_busy) & (~exc_ex)  ;
+assign valid_ex = (~stall_E) & ready_mem & (~multicycle_busy);
 
 assign return_addr  = pc_ex + 4;
 
@@ -218,7 +223,7 @@ always @(posedge clk or negedge reset_n)begin
         lsu_op_mem          <= LSU_OP_LD;
         lsu_dtype_mem[2:0]  <= LSU_DTYPE_U_BYTE;
         lsu_addr_mem[31:0]  <= 32'h0;
-    end else if( (valid_ex & flush_E) | (~valid_ex & ready_mem) )begin
+    end else if( (ready_ex & flush_E) | (~ready_ex & ready_mem) )begin
         lsu_en_mem          <= 1'b0;
         lsu_op_mem          <= 1'b0;
         lsu_dtype_mem[2:0]  <= 3'b0;
@@ -238,7 +243,7 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_tag_mem           <= {TAG_WIDTH{1'b0}};
         rd_wr_addr_mem[4:0]     <= 5'h0;
         rd_wr_data_mem[31:0]    <= 32'h0;
-    end else if( (valid_ex & flush_E) | (~valid_ex & ready_mem) )begin
+    end else if( (ready_ex & flush_E) | (~ready_ex & ready_mem) )begin
         rd_wr_en_mem            <= 1'b0;
         rd_wr_addr_mem[4:0]     <= 5'h0;
         rd_wr_data_mem[31:0]    <= 32'h0;
@@ -250,13 +255,6 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
-always @(posedge clk or negedge reset_n)begin
-    if(!reset_n)begin
-        pc_mem[31:0] <= 32'h0;
-    end else if(valid_ex)begin
-        pc_mem[31:0] <= pc_ex[31:0];
-    end
-end
 
 always @(*)begin
     rd_wr_data_ex = 32'h0;
@@ -279,14 +277,39 @@ assign forward_ex_wdata = rd_wr_data_ex;
 assign clr_dirty_ex_en      = forward_ex_en & flush_E;
 assign clr_dirty_ex_addr    = rd_wr_addr_ex;
 
+
+
+//////////////////////////////////////////////////////////////////////////////
+//exc control
+//exc_taken_id is from ID stage's exc
+//illegal_csr is EX stage's exc
+/////////////////////////////////////////////////////////////////////////////
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        pc_mem[31:0] <= 32'h0;
+    end else if(valid_ex)begin
+        pc_mem[31:0] <= pc_ex[31:0];
+    end
+end
+
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         exc_taken_mem        <= 1'b0;
     end else if((valid_ex & flush_E) | (~valid_ex & ready_mem))begin
         exc_taken_mem        <= 1'b0;
     end else if( valid_ex )begin
-        exc_taken_mem        <= exc_taken_ex;
+        exc_taken_mem        <= exc_taken_ex | exc_ex;
     end
 end
+
+generate
+if( ILLEGAL_CSR_EN==1)begin:en_illegal_csr
+    assign exc_ex = illegal_csr;
+    assign is_illegal_csr = illegal_csr & ready_mem;
+end else begin: gen_unused_illegal
+    assign exc_ex = 1'b0;
+    assign is_illegal_csr = 1'b0;
+end
+endgenerate
 
 endmodule

@@ -75,6 +75,7 @@ module mem_stage(
 logic			lsu_ready;		// From lsu of lsu.v
 // End of automatics
 //////////////////////////////////////////////
+logic           exc_mem;
 
 //////////////////////////////////////////////
 //main code
@@ -119,13 +120,13 @@ lsu lsu(
 
 assign lsu_en = lsu_en_mem & (~ready_wb) & (~flush_M);
 
-assign ready_mem = ready_wb & lsu_ready;      
-assign valid_mem = lsu_ready;
+assign ready_mem = ready_wb & lsu_ready & (~exc_mem);      
+assign valid_mem = ready_wb & lsu_ready;
 
-assign forward_mem_en = (~lsu_en_mem) & rd_wr_en_mem;
-assign forward_mem_tag = rd_wr_tag_mem;
-assign forward_mem_addr = rd_wr_addr_mem;
-assign forward_mem_wdata = rd_wr_data_mem;
+assign forward_mem_en       = (~lsu_en_mem) & rd_wr_en_mem;
+assign forward_mem_tag      = rd_wr_tag_mem;
+assign forward_mem_addr     = rd_wr_addr_mem;
+assign forward_mem_wdata    = rd_wr_data_mem;
 
 assign clr_dirty_mem_en     = forward_mem_en & flush_M;
 assign clr_dirty_mem_addr   = forward_mem_addr;
@@ -141,9 +142,6 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_data_wb       <= 32'h0;
         lsu_en_wb           <= 1'b0;
         lsu_op_wb           <= LSU_OP_LD;
-
-        exc_taken_wb        <= 1'b0;
-        pc_wb               <= 32'h0;
     end else if( (flush_M & valid_mem) | ((~valid_mem) & ready_wb) )begin
         rd_wr_en_wb         <= 1'b0;
         rd_wr_tag_wb        <= {TAG_WIDTH{1'b0}};
@@ -151,8 +149,6 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_data_wb       <= 32'h0;
         lsu_en_wb           <= 1'b0;
         lsu_op_wb           <= LSU_OP_LD;
-
-        exc_taken_wb        <= 1'b0;
     end else if( valid_mem ) begin
         rd_wr_en_wb         <= rd_wr_en_mem;
         rd_wr_tag_wb        <= rd_wr_tag_mem;
@@ -160,10 +156,32 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_data_wb       <= rd_wr_data_mem;
         lsu_en_wb           <= lsu_en_mem;
         lsu_op_wb           <= lsu_op_mem;
+    end
+end
 
-        exc_taken_wb        <= exc_taken_mem;
+
+//////////////////////////////////////////////
+//exc control
+//exc_taken_mem is from ID or EX stage's exc
+//exc_mem is mem stage's exc, reserved
+//////////////////////////////////////////////
+always @(posedge clk or negedge reset_n)begin
+    if( !reset_n )begin
+        pc_wb               <= 32'h0;
+    end else if(valid_mem)begin
         pc_wb               <= pc_mem;
     end
 end
 
+always @(posedge clk or negedge reset_n)begin
+    if( !reset_n )begin
+        exc_taken_wb        <= 1'b0;
+    end else if( (valid_mem & flush_M) | (~valid_mem & ready_wb) )begin
+        exc_taken_wb        <= 1'b0;
+    end else if( valid_mem )begin
+        exc_taken_wb        <= exc_taken_mem | exc_mem;
+    end
+end
+
+assign exc_mem = 1'b0;
 endmodule

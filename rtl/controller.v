@@ -44,6 +44,7 @@ module controller(
     input logic                 is_ebreak,
     input logic                 is_fence,
     input logic                 is_illegal_instr,
+    input logic                 is_illegal_csr,
     input logic                 is_instr_acs_fault,
     input logic                 is_interrupt,
 
@@ -145,7 +146,8 @@ always @(*)begin
             unique case(1)
                 is_ecall            : begin mcause_update=1'b1;mcause = (privilege_mode == PRIV_LVL_U) ? MCAUSE_ECALL_U : MCAUSE_ECALL_M;end
                 is_ebreak           : begin mcause_update=1'b1;mcause = MCAUSE_BREAKPOINT;end
-                is_illegal_instr    : begin mcause_update=1'b1;mcause = MCAUSE_ILLEGAL_INSTR;end
+                is_illegal_instr, 
+                is_illegal_csr      : begin mcause_update=1'b1;mcause = MCAUSE_ILLEGAL_INSTR;end
                 is_instr_acs_fault  : begin mcause_update=1'b1;mcause = MCAUSE_INSTR_ACS_FAULT;end
                 is_interrupt        : begin 
                     mcause_update=1'b1;
