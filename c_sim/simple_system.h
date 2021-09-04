@@ -19,6 +19,7 @@
 #define PASS 0
 #define FAIL 2
 #define IRQ  3
+#define TIMER  4
 
 #define EXTERN_IRQ_REQ  0
 #define SOFT_IRQ_REQ    1
@@ -41,6 +42,7 @@ typedef unsigned int uint32_t;
 void interupt_enable( int interupt_num, void* handle, void* arg );
 void trap_handle( uint32_t mcause, uint32_t mepc );
 void exception_handle ( uint32_t mcause, uint32_t mepc );
+void exception_enable( void *handle, void * arg );
 
 void printinfo( const char *msg, int sig );
 void print_dec( uint32_t n);
@@ -56,6 +58,6 @@ void soft_irq_set(void);
 void extern_irq_clr(void);
 void timer_irq_clr(void);
 void soft_irq_clr(void);
-
+void timer_config( unsigned int count );
 #endif
 

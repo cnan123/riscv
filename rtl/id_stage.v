@@ -31,8 +31,6 @@ module id_stage(
     input                       extern_irq_taken,
     input                       soft_irq_taken,
     input                       timer_irq_taken,
-    input                       irq_taken_wb,
-    output                      irq_ack,
 
     input                       debug_req, //TODO
 
@@ -356,7 +354,7 @@ end
 assign stall_id = read_rf_busy | stall_D;
 
 assign ready_id = (~stall_id) & ready_ex & (~exc_taken_id);
-assign valid_id = (~stall_id) & ready_ex ;
+assign valid_id = (~stall_id) & ready_ex & instr_value;
 
 assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_value));
 
@@ -431,11 +429,9 @@ assign csr_wdata_ex[31:0]   = src_a_ex[31:0];
 //=======================================================================//
 assign instr_acs_fault = (instr_value & instr_fetch_error);
 
-assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault | mret_en | uret_en | fence_en;
+assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault | mret_en | uret_en | fence_en | wfi_en;
 
 assign interrupt_taken_id   = (~flush_D) & (extern_irq_taken | soft_irq_taken | timer_irq_taken) & valid_id; 
-assign irq_ack              = irq_taken_wb;
-
 assign exc_taken_id       = (exception_taken_id | interrupt_taken_id);
 
 always @(posedge clk or negedge reset_n)begin

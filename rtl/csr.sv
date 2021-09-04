@@ -14,10 +14,12 @@ module csr(
         input                   reset_n,
 
         input           [31:0]  hartid,
+        input           [31:0]  pc_if,
         input           [31:0]  pc_wb,
 
         input                   is_mret,
         input                   mepc_updata,
+        input mepc_mux_e        mepc_mux,
         input                   mcause_update,
         input mcause_e          mcause,
 
@@ -342,7 +344,11 @@ always @(*)begin
             default:;
         endcase
     end else if( mepc_updata )begin
-        mepc_n = { pc_wb[31:1], 1'b0 };
+        unique case(mepc_mux)
+            MEPC_PC_IF: mepc_n = { pc_if[31:1], 1'b0 };
+            MEPC_PC_WB: mepc_n = { pc_wb[31:1], 1'b0 };
+            default:;
+        endcase
     end
 end
 
@@ -363,7 +369,7 @@ always @(*)begin
     unique case(privilege_mode_q)
         PRIV_LVL_M: begin
             if( is_mret )begin
-                privilege_mode_n = mstatus_q.mpp;
+                privilege_mode_n = privilege_e'(mstatus_q.mpp);
             end
         end
         PRIV_LVL_U: begin

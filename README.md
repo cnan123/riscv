@@ -3,13 +3,20 @@
 The puspose of this project is to implement a basic 5-stage pipeline of riscv cpu.
 
 ## Targets
-+ support IMC isa
-+ support interrupt
-+ support exception
-+ support machine user mode
-+ support misalign access
-+ support debug mode
-+ support hardware breakpoint
++ IMC ISA
++ interrupt
++ exception
++ machine user mode
++ misalign access
++ debug mode
++ hardware breakpoint
+
+## Supports
++ I extend ISA
++ interrupt(software, timer, external)
++ exception(ecall, ebreak, illegal_instr, illegal_instr_acs, illegal_csr, load_fault, store_fault)
++ wfi
++ misalign access
 
 ## Tool Requirements
 
@@ -37,8 +44,9 @@ $ run_sim.pl -module case -case hello_test
 $ verdi -sv -f sim.lst -ssf verilog.fsdb
 ```
 
-## First Stage
+## Version Log
 
++ support wfi
 + support interrupt
 + 2021.7.23 Refactor the CPU Pipeline
 + base cpu, support IM isa

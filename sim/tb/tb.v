@@ -29,7 +29,6 @@ logic			instr_req;		// From riscv_core of riscv_core.v
 //////////////////////////////////////////////
 logic clk;
 logic reset_n;
-logic fetch_enable;
 logic [31:0] boot_addr;
 logic [31:0]    hart_id;
 logic           instr_gnt;
@@ -82,7 +81,6 @@ end
 
 assign boot_addr = 32'h0;
 assign hart_id = 32'h0;
-assign fetch_enable = 1'b1;
 assign data_error = 1'b0;
 assign debug_req = 1'b0;
 
@@ -102,7 +100,6 @@ riscv_core riscv_core(/*AUTOINST*/
 		      .soft_irq		(soft_irq),
 		      .timer_irq	(timer_irq),
 		      .debug_req	(debug_req),
-		      .fetch_enable	(fetch_enable),
 		      .hart_id		(hart_id[31:0]),
 		      .boot_addr	(boot_addr[31:0]),
 		      .instr_gnt	(instr_gnt),

@@ -326,7 +326,7 @@ always @(*)begin
             load_instr      :begin 
                 lsu_en = 1'b1;
                 lsu_op = LSU_OP_LD;
-                lsu_dtype = funct3[2:0];
+                lsu_dtype = lsu_dtype_e'(funct3[2:0]);
                 rs1_rd_en = 1'b1;
                 src_a_mux = SRC_A_REG_RS1;
                 src_b_mux = SRC_B_IMM_ITYPE;
@@ -337,7 +337,7 @@ always @(*)begin
             store_instr     :begin
                 lsu_en = 1'b1;
                 lsu_op = LSU_OP_WR;
-                lsu_dtype = funct3[2:0];
+                lsu_dtype = lsu_dtype_e'(funct3[2:0]);
                 rs1_rd_en = 1'b1;
                 rs2_rd_en = 1'b1;
                 src_a_mux = SRC_A_REG_RS1;

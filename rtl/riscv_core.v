@@ -22,7 +22,6 @@ module riscv_core#(
 
     input           debug_req, //TODO
 
-    input           fetch_enable,
     input [31:0]    hart_id,
     input [31:0]    boot_addr,
 
@@ -66,10 +65,12 @@ logic [11:0]		csr_addr_ex;		// From id_stage of id_stage.v
 logic			csr_en_ex;		// From id_stage of id_stage.v
 logic [1:0]		csr_op_ex;		// From id_stage of id_stage.v
 logic [31:0]		csr_wdata_ex;		// From id_stage of id_stage.v
+logic			exc_taken;		// From wb_stage of wb_stage.v
 logic			exc_taken_ex;		// From id_stage of id_stage.v
 logic			exc_taken_mem;		// From ex_stage of ex_stage.v
 logic			exc_taken_wb;		// From mem_stage of mem_stage.v
 logic			extern_irq_taken;	// From plic of plic.v
+logic			fetch_enable;		// From controller of controller.v
 logic			flush_D;		// From controller of controller.v
 logic			flush_E;		// From controller of controller.v
 logic			flush_F;		// From controller of controller.v
@@ -86,8 +87,7 @@ logic [31:0]		forward_mem_wdata;	// From mem_stage of mem_stage.v
 logic			instr_fetch_error;	// From if_stage of if_stage.v
 logic [31:0]		instr_payload_id;	// From if_stage of if_stage.v
 logic			instr_value_id;		// From if_stage of if_stage.v
-logic			irq_ack;		// From id_stage of id_stage.v
-logic			irq_taken_wb;		// From controller of controller.v
+logic			irq_ack;		// From controller of controller.v
 logic			is_compress_intr;	// From if_stage of if_stage.v
 logic			is_ebreak;		// From id_stage of id_stage.v
 logic			is_ecall;		// From id_stage of id_stage.v
@@ -96,6 +96,8 @@ logic			is_illegal_csr;		// From ex_stage of ex_stage.v
 logic			is_illegal_instr;	// From id_stage of id_stage.v
 logic			is_instr_acs_fault;	// From id_stage of id_stage.v
 logic			is_interrupt;		// From id_stage of id_stage.v
+logic			is_lsu_load_err;	// From wb_stage of wb_stage.v
+logic			is_lsu_store_err;	// From wb_stage of wb_stage.v
 logic			is_mret;		// From id_stage of id_stage.v
 logic			is_sret;		// From id_stage of id_stage.v
 logic			is_uret;		// From id_stage of id_stage.v
@@ -159,11 +161,6 @@ logic			timer_irq_taken;	// From plic of plic.v
 //////////////////////////////////////////////
 //main code
 
-//TODO
-logic fence;
-assign fence = 1'b0;
-
-
 alu_op_e            alu_op_ex;
 lsu_op_e            lsu_op_ex;
 lsu_dtype_e         lsu_dtype_ex;
@@ -172,6 +169,7 @@ lsu_dtype_e         lsu_dtype_mem;
 lsu_op_e            lsu_op_wb;
 
 mcause_e            mcause;
+mepc_mux_e          mepc_mux;
 privilege_e         privilege_mode;
 
 // Local Variables:                                                                 
@@ -229,7 +227,6 @@ id_stage id_stage(
 		  .lsu_dtype_ex		(lsu_dtype_ex),
 		  // Outputs
 		  .ready_id		(ready_id),
-		  .irq_ack		(irq_ack),
 		  .jump_ex		(jump_ex),
 		  .branch_ex		(branch_ex),
 		  .alu_en_ex		(alu_en_ex),
@@ -269,7 +266,6 @@ id_stage id_stage(
 		  .extern_irq_taken	(extern_irq_taken),
 		  .soft_irq_taken	(soft_irq_taken),
 		  .timer_irq_taken	(timer_irq_taken),
-		  .irq_taken_wb		(irq_taken_wb),
 		  .debug_req		(debug_req),
 		  .forward_ex_en	(forward_ex_en),
 		  .forward_ex_tag	(forward_ex_tag[TAG_WIDTH-1:0]),
@@ -296,10 +292,9 @@ id_stage id_stage(
 	.software_intr	(soft_irq_taken),
 
 );*/
-ex_stage #( 
-/*AUTOINSTPARAM*/
+ex_stage #( /*AUTOINSTPARAM*/
 	   // Parameters
-	   .ILLEGAL_CSR_EN		(ILLEGAL_CSR_EN))ex_stage(
+	   .ILLEGAL_CSR_EN		(ILLEGAL_CSR_EN))ex_stage( 
 /*AUTOINST*/
 								  // Interfaces
 								  .alu_op_ex		(alu_op_ex),
@@ -307,6 +302,7 @@ ex_stage #(
 								  .lsu_dtype_ex		(lsu_dtype_ex),
 								  .lsu_op_mem		(lsu_op_mem),
 								  .lsu_dtype_mem	(lsu_dtype_mem),
+								  .mepc_mux		(mepc_mux),
 								  .mcause		(mcause),
 								  .privilege_mode	(privilege_mode),
 								  // Outputs
@@ -358,6 +354,7 @@ ex_stage #(
 								  .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
 								  .exc_taken_ex		(exc_taken_ex),
 								  .pc_wb		(pc_wb[31:0]),
+								  .pc_if		(pc_if[31:0]),
 								  .extern_intr		(extern_irq_taken), // Templated
 								  .timer_intr		(timer_irq_taken), // Templated
 								  .software_intr	(soft_irq_taken), // Templated
@@ -428,6 +425,9 @@ wb_stage wb_stage(
 		  .rf_wr_tag		(rf_wr_tag[TAG_WIDTH-1:0]),
 		  .rf_wr_addr		(rf_wr_addr[4:0]),
 		  .rf_wr_data		(rf_wr_data[31:0]),
+		  .is_lsu_load_err	(is_lsu_load_err),
+		  .is_lsu_store_err	(is_lsu_store_err),
+		  .exc_taken		(exc_taken),
 		  // Inputs
 		  .clk			(clk),
 		  .reset_n		(reset_n),
@@ -439,18 +439,22 @@ wb_stage wb_stage(
 		  .lsu_en_wb		(lsu_en_wb),
 		  .lsu_rdata_wb		(lsu_rdata_wb[31:0]),
 		  .lsu_valid_wb		(lsu_valid_wb),
+		  .lsu_err_wb		(lsu_err_wb),
+		  .exc_taken_wb		(exc_taken_wb),
 		  .flush_W		(flush_W));
 
 /*controller AUTO_TEMPLATE(
 );*/
 controller controller(/*AUTOINST*/
 		      // Interfaces
-		      .lsu_op_wb	(lsu_op_wb),
 		      .privilege_mode	(privilege_mode),
 		      .mcause		(mcause),
+		      .mepc_mux		(mepc_mux),
 		      // Outputs
 		      .set_pc_valid	(set_pc_valid),
 		      .set_pc		(set_pc[31:0]),
+		      .fetch_enable	(fetch_enable),
+		      .irq_ack		(irq_ack),
 		      .mcause_update	(mcause_update),
 		      .mepc_updata	(mepc_updata),
 		      .flush_F		(flush_F),
@@ -463,13 +467,11 @@ controller controller(/*AUTOINST*/
 		      .stall_E		(stall_E),
 		      .stall_M		(stall_M),
 		      .stall_W		(stall_W),
-		      .irq_taken_wb	(irq_taken_wb),
 		      // Inputs
 		      .clk		(clk),
 		      .reset_n		(reset_n),
 		      .jump_taken	(jump_taken),
 		      .branch_taken	(branch_taken),
-		      .fence		(fence),
 		      .jump_target_addr	(jump_target_addr[31:0]),
 		      .branch_target_addr(branch_target_addr[31:0]),
 		      .pc_if		(pc_if[31:0]),
@@ -480,18 +482,18 @@ controller controller(/*AUTOINST*/
 		      .extern_irq_taken	(extern_irq_taken),
 		      .soft_irq_taken	(soft_irq_taken),
 		      .timer_irq_taken	(timer_irq_taken),
-		      .lsu_en_wb	(lsu_en_wb),
-		      .lsu_valid_wb	(lsu_valid_wb),
-		      .lsu_err_wb	(lsu_err_wb),
-		      .exc_taken_wb	(exc_taken_wb),
+		      .exc_taken	(exc_taken),
 		      .is_mret		(is_mret),
 		      .is_ecall		(is_ecall),
 		      .is_ebreak	(is_ebreak),
 		      .is_fence		(is_fence),
 		      .is_illegal_instr	(is_illegal_instr),
-		      .is_illegal_csr	(is_illegal_csr),
 		      .is_instr_acs_fault(is_instr_acs_fault),
 		      .is_interrupt	(is_interrupt),
+		      .is_wfi		(is_wfi),
+		      .is_illegal_csr	(is_illegal_csr),
+		      .is_lsu_load_err	(is_lsu_load_err),
+		      .is_lsu_store_err	(is_lsu_store_err),
 		      .mepc		(mepc[31:0]),
 		      .mtvec		(mtvec[31:0]));
 

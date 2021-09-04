@@ -33,6 +33,7 @@ parameter PRINT_ADDR = 32'hffff_fff4;
 `define ISA_FAIL    32'h1
 `define C_FAIL      32'h2
 `define IRQ         32'h3
+`define TIMER       32'h4
 
 `define EXTERN_IRQ_REQ  32'h0
 `define SOFT_IRQ_REQ    32'h1
@@ -54,6 +55,21 @@ class monitor;
             sim_control;
             print;
         join
+    endtask
+    
+    task sim_control;
+        logic [31:0] cmd;
+
+        while(1)begin
+            wait_cmd(cmd);
+            case(cmd)
+                `PASS       :pass;
+                `ISA_FAIL   :isa_fail;
+                `C_FAIL     :c_fail;
+                `IRQ        :irq; 
+                `TIMER      :timer; 
+            endcase
+        end
     endtask
 
     task wait_cmd;
@@ -87,21 +103,6 @@ class monitor;
                 //$display("arg: %c",arg);
                 break;
             end
-        end
-    endtask
-
-
-    task sim_control;
-        logic [31:0] cmd;
-
-        while(1)begin
-            wait_cmd(cmd);
-            case(cmd)
-                `PASS       :pass;
-                `ISA_FAIL   :isa_fail;
-                `C_FAIL     :c_fail;
-                `IRQ        :irq; 
-            endcase
         end
     endtask
 
@@ -139,6 +140,16 @@ class monitor;
             `TIMER_IRQ_RLS: timer_irq = 1'b0;
             default:;
         endcase
+    endtask
+
+    task timer;
+        logic [31:0] arg;
+        wait_arg(arg);
+        $display("arg:%x",arg);
+        while(arg--)begin
+            @(posedge `CLK);
+        end
+        timer_irq = 1'b1;
     endtask
 
     task print;

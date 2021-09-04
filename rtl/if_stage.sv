@@ -192,7 +192,7 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
-assign fetch_en = is_boot && (set_pc_valid | branch_prediction_taken | ready_if) && fetch_enable;
+assign fetch_en = is_boot && (set_pc_valid | branch_prediction_taken | ready_if);
 
 assign hold_data_is_compress = (hold_rdata[1:0]!=2'b11) & hold_rdata_value & pc_unalign;
 assign fifo_pop = fetch_en && (~fifo_empty) && (~hold_data_is_compress);
@@ -293,7 +293,7 @@ always @(*)begin
 end
 
 assign instr_req = (
-    ( (fsm_fetch_cs[1:0]==IDLE) & is_boot & ( (~fifo_almost_full) | fifo_clear ) ) |
+    ( (fsm_fetch_cs[1:0]==IDLE) & is_boot & fetch_enable & ( (~fifo_almost_full) | fifo_clear ) ) |
     ( (fsm_fetch_cs[1:0]==WAIT_GNT) ) |
     ( (fsm_fetch_cs[1:0]==WAIT_DATA) & instr_valid & ( (~fifo_almost_full) | fifo_clear ) ) |
     ( (fsm_fetch_cs[1:0]==FLUSH) & instr_valid )

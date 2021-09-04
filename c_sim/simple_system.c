@@ -10,10 +10,11 @@
 //================================================================
 #include "simple_system.h"
 
-#include "simple_system.h"
 typedef void (*interrupt_handle_t)( void * arg );
+typedef void (*exception_handle_t)( void * arg );
 
 void *interrupt_handle[32][2];
+void *exc_handle[2];
 
 void interupt_enable( int interupt_num, void *handle, void * arg )
 {
@@ -43,11 +44,26 @@ void trap_handle( uint32_t mcause, uint32_t mepc )
     return;
 }
 
+
+void exception_enable( void *handle, void * arg )
+{
+    exc_handle[0] = handle;
+    exc_handle[1] = arg;
+}
+
+
 void exception_handle ( uint32_t mcause, uint32_t mepc )
 {
     printinfo("enter exception handle!!!\n",1);
     printinfo("mcause is %h\n",1);
-    while(1){;}
+
+    if( exc_handle != NULL){
+        ( (exception_handle_t)(exc_handle[0]) )( exc_handle[1] );
+    }else{
+        //while(1){;}
+        fail("Fail Hart Exception\n");
+    }
+
 }
 
 void printinfo( const char *msg, int sig )
@@ -153,5 +169,11 @@ void soft_irq_clr(void)
     REG_WR(CMD, IRQ);
     REG_WR(ARG, SOFT_IRQ_RLS);
     asm("nop");
+}
+
+
+void timer_config( unsigned int count ){
+    REG_WR(CMD, TIMER);
+    REG_WR(ARG, count);
 }
 

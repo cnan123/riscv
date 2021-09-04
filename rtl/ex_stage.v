@@ -81,12 +81,14 @@ module ex_stage#(
 
     //constrol status register
     input         [31:0]        pc_wb,
+    input         [31:0]        pc_if,
     input                       extern_intr,
     input                       timer_intr,
     input                       software_intr,
     input   logic [31:0]        hart_id,
     input   logic               is_mret,
     input   logic               mepc_updata,
+    input   mepc_mux_e          mepc_mux,
     input                       mcause_update,
     input mcause_e              mcause,
     output privilege_e          privilege_mode,
@@ -163,6 +165,7 @@ alu u_alu(/*AUTOINST*/
 csr csr_register(
     /*AUTOINST*/
 		 // Interfaces
+		 .mepc_mux		(mepc_mux),
 		 .mcause		(mcause),
 		 .privilege_mode	(privilege_mode),
 		 // Outputs
@@ -176,6 +179,7 @@ csr csr_register(
 		 .clk			(clk),
 		 .reset_n		(reset_n),
 		 .hartid		(hart_id[31:0]),	 // Templated
+		 .pc_if			(pc_if[31:0]),
 		 .pc_wb			(pc_wb[31:0]),
 		 .is_mret		(is_mret),
 		 .mepc_updata		(mepc_updata),
@@ -225,8 +229,8 @@ always @(posedge clk or negedge reset_n)begin
         lsu_addr_mem[31:0]  <= 32'h0;
     end else if( (ready_ex & flush_E) | (~ready_ex & ready_mem) )begin
         lsu_en_mem          <= 1'b0;
-        lsu_op_mem          <= 1'b0;
-        lsu_dtype_mem[2:0]  <= 3'b0;
+        lsu_op_mem          <= LSU_OP_LD;
+        lsu_dtype_mem[2:0]  <= LSU_DTYPE_U_BYTE;
         lsu_addr_mem[31:0]  <= 32'h0;
     end else if(valid_ex)begin
         lsu_en_mem          <= lsu_en_ex;
