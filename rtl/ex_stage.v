@@ -22,6 +22,7 @@ module ex_stage#(
     input                       ready_mem,
     output logic                ready_ex,
 
+    input [31:0]                pc_id,
     input [31:0]                pc_ex,
     output logic [31:0]         pc_mem,
 
@@ -115,6 +116,9 @@ logic [31:0]		csr_rdata;		// From csr_register of csr.v
 logic			illegal_csr;		// From csr_register of csr.v
 logic [31:0]		logic_result;		// From u_alu of alu.v
 logic [63:0]		mul_result;		// From multiplier of multiplier.v
+logic [31:0]		quotient;		// From divider of div.v
+logic			ready_div;		// From divider of div.v
+logic [31:0]		remainder;		// From divider of div.v
 // End of automatics
 //////////////////////////////////////////////
 logic [31:0]    alu_result;
@@ -125,6 +129,7 @@ logic           equal_result;
 logic           less_than_result;
 
 logic           mul_en,div_en;
+logic           div_sign;
 logic [31:0]    mult_res;
 
 logic [31:0]    rd_wr_data_ex;
@@ -207,6 +212,7 @@ csr csr_register(
 //////////////////////////////////////////////
 assign mul_en = mult_en_ex & ( mult_op_ex inside {MUL, MULH, MULHU, MULHSU} );
 assign div_en = mult_en_ex & ( mult_op_ex inside {DIV, DIVU, REM, REMU} );
+assign div_sign =  ( mult_op_ex inside {DIV, REM} );
 
 always_comb begin
     mult_res[31:0] = 32'h0;
@@ -214,6 +220,8 @@ always_comb begin
         unique case(mult_op_ex)
             MULH, MULHU, MULHSU: mult_res = mul_result[63:32];
             MUL: mult_res = mul_result[31:0];
+            DIV, DIVU: mult_res = quotient[31:0];
+            REM, REMU: mult_res = remainder[31:0];
             default: mult_res = 32'h0;
         endcase
     end
@@ -238,6 +246,27 @@ multiplier multiplier(/*AUTOINST*/
 		      .op_b		(src_b_ex[31:0]));	 // Templated
 
 
+/*div AUTO_TEMPLATE(
+    .ready (ready_div ),
+    .flush  (flush_E ),
+    .en     (div_en),
+    .sign   (div_sign),
+    .op_a   (src_a_ex[]),
+    .op_b   (src_b_ex[]),
+);*/
+div divider(/*AUTOINST*/
+	    // Outputs
+	    .quotient			(quotient[31:0]),
+	    .remainder			(remainder[31:0]),
+	    .ready			(ready_div ),		 // Templated
+	    // Inputs
+	    .clk			(clk),
+	    .reset_n			(reset_n),
+	    .flush			(flush_E ),		 // Templated
+	    .en				(div_en),		 // Templated
+	    .sign			(div_sign),		 // Templated
+	    .op_a			(src_a_ex[31:0]),	 // Templated
+	    .op_b			(src_b_ex[31:0]));	 // Templated
 
 //////////////////////////////////////////////
 //branch
@@ -255,15 +284,11 @@ assign jump_target_addr = adder_result;
 //control
 //////////////////////////////////////////////
 
-assign multicycle_busy = multicycle_instr & (~multicycle_ready);
+assign ready_ex = (~stall_E) & ready_mem & ready_div & (~exc_ex)  ;
+assign valid_ex = (~stall_E) & ready_mem & ready_div;
 
-assign ready_ex = (~stall_E) & ready_mem & (~multicycle_busy) & (~exc_ex)  ;
-assign valid_ex = (~stall_E) & ready_mem & (~multicycle_busy);
+assign return_addr  = pc_id; //next instr
 
-assign return_addr  = pc_ex + 4;
-
-assign multicycle_instr = 1'b0;
-assign multicycle_ready = 1'b0;
 
 //////////////////////////////////////////////
 //pipeline
@@ -331,7 +356,7 @@ always @(*)begin
     endcase
 end
 
-assign forward_ex_en    = rd_wr_en_ex & valid_ex & alu_en_ex;
+assign forward_ex_en    = rd_wr_en_ex & valid_ex & (alu_en_ex | div_en );
 assign forward_ex_tag   = rd_wr_tag_ex;
 assign forward_ex_addr  = rd_wr_addr_ex;
 assign forward_ex_wdata = rd_wr_data_ex;

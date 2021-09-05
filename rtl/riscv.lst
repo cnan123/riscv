@@ -9,6 +9,7 @@ ${PROJ_PATH}/rtl/id_stage.v
 ${PROJ_PATH}/rtl/alu.sv
 ${PROJ_PATH}/rtl/csr.sv
 ${PROJ_PATH}/rtl/multiplier.sv
+${PROJ_PATH}/rtl/div.sv
 ${PROJ_PATH}/rtl/ex_stage.v
 ${PROJ_PATH}/rtl/lsu.sv
 ${PROJ_PATH}/rtl/mem_stage.v

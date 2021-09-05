@@ -18,7 +18,7 @@ AR		:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-ar
 OBJCOPY	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-objcopy
 READELF	:= /home/tool/riscv-gcc/bin/riscv64-unknown-elf-readelf
 
-RISCV_ARCH		:= rv32i
+RISCV_ARCH		:= rv32im
 RISCV_ABI		:= ilp32
 RISCV_MCMODEL	:= medlow
 

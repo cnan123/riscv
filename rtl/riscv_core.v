@@ -343,6 +343,7 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  .stall_E		(stall_E),
 								  .flush_E		(flush_E),
 								  .ready_mem		(ready_mem),
+								  .pc_id		(pc_id[31:0]),
 								  .pc_ex		(pc_ex[31:0]),
 								  .jump_ex		(jump_ex),
 								  .branch_ex		(branch_ex),
