@@ -1,6 +1,7 @@
 +incdir+$PROJ_PATH/rtl
 
 ${PROJ_PATH}/rtl/riscv_pkg.sv 
+${PROJ_PATH}/rtl/compress_decoder.sv
 ${PROJ_PATH}/rtl/if_stage.sv
 ${PROJ_PATH}/rtl/sync_fifo.v
 ${PROJ_PATH}/rtl/decoder.sv

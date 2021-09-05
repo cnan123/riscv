@@ -12,7 +12,7 @@ The puspose of this project is to implement a basic 5-stage pipeline of riscv cp
 + hardware breakpoint
 
 ## Supports
-+ I extend ISA
++ IMC extend ISA
 + interrupt(software, timer, external)
 + exception(ecall, ebreak, illegal_instr, illegal_instr_acs, illegal_csr, load_fault, store_fault)
 + wfi
@@ -46,6 +46,9 @@ $ verdi -sv -f sim.lst -ssf verilog.fsdb
 
 ## Version Log
 
++ support compress instr
++ support divider
++ support multiple
 + support wfi
 + support interrupt
 + 2021.7.23 Refactor the CPU Pipeline

@@ -356,7 +356,7 @@ always @(*)begin
     endcase
 end
 
-assign forward_ex_en    = rd_wr_en_ex & valid_ex & (alu_en_ex | div_en );
+assign forward_ex_en    = rd_wr_en_ex & valid_ex & (alu_en_ex | div_en ) & (~lsu_en_ex);
 assign forward_ex_tag   = rd_wr_tag_ex;
 assign forward_ex_addr  = rd_wr_addr_ex;
 assign forward_ex_wdata = rd_wr_data_ex;

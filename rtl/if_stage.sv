@@ -49,6 +49,10 @@ module if_stage#(
 
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
+// Beginning of automatic wires (for undeclared instantiated-module outputs)
+logic			illegal_instr_o;	// From compress_decoder of compress_decoder.v
+logic [31:0]		instruction_if;		// From compress_decoder of compress_decoder.v
+// End of automatics
 //////////////////////////////////////////////
 logic [31:0]    instruction;
 logic           instruction_value;
@@ -144,7 +148,7 @@ assign rdata_value  = fifo_pop ? 1'b1 : instr_valid;
 assign rdata_err    = rdata[32];
 assign rdata[32:0]  = fifo_pop ? fifo_rdata[32:0] : {instr_err,instr_rdata};
 
-assign instruction_temp = pc_unalign ? {rdata[31:16],hold_rdata[15:0]} : rdata;
+assign instruction_temp = pc_unalign ? {rdata[15:0],hold_rdata[15:0]} : rdata;
 assign instruction[31:16] = is_compress_intr ? 16'h0 : instruction_temp[31:16];
 assign instruction[15:0] = instruction_temp[15:0];
 
@@ -166,7 +170,7 @@ always @(posedge clk or negedge reset_n)begin
         instr_value_id      <= 1'b0;
         instr_fetch_error   <= 1'b0;
     end else if(ready_if) begin
-        instr_payload_id    <= instruction;
+        instr_payload_id    <= instruction_if;
         instr_value_id      <= instruction_value;
         instr_fetch_error   <= instruction_err;
     end
@@ -203,8 +207,22 @@ assign read_from_fifo = fifo_pop | hold_data_is_compress | (is_compress_intr & p
 /////////////////////////////////////////////////
 //compress instruction decoder
 /////////////////////////////////////////////////
-//TODO
 assign is_compress_intr = ( instruction[1:0] != 2'b11 ) & instruction_value;
+
+/*compress_decoder AUTO_TEMPLATE(
+    .instr_i (instruction[]),
+    .instr_valid    (instruction_value),
+    .instr_o    (instruction_if[]),
+);*/
+compress_decoder compress_decoder(
+    /*AUTOINST*/
+				  // Outputs
+				  .instr_o		(instruction_if[31:0]), // Templated
+				  .illegal_instr_o	(illegal_instr_o),
+				  // Inputs
+				  .instr_valid		(instruction_value), // Templated
+				  .instr_i		(instruction[31:0])); // Templated
+
 
 /////////////////////////////////////////////////
 //prefetch fifo
