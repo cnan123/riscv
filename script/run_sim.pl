@@ -37,12 +37,16 @@ print "$proj_path \n";
 my $dir = getcwd;
 
 if( defined($isa) ){
+    if( ! defined($module) ){
+        $module = "rv32ui";
+    }
+
     $isa_dir = "$proj_path/riscv_riscv-tests/isa";
     chdir($isa_dir) or die "can't cd' $isa_dir , $!";;
-    system("make -f $isa_dir/Makefile_cn PROGRAM=$case clean ");
-    system("make -f $isa_dir/Makefile_cn PROGRAM=$case ");
+    system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module clean ");
+    system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module ");
     `cp  -rf $case.* $dir`;
-    system("make -f $isa_dir/Makefile_cn PROGRAM=$case clean ");
+    system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module clean ");
 
     chdir($dir) or die "can't cd' $dir , $!";;
 }else{

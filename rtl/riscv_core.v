@@ -8,7 +8,6 @@
 //
 //
 //================================================================
-import riscv_pkg::*;
 
 module riscv_core#(
     parameter ILLEGAL_CSR_EN = 1'b0
@@ -44,6 +43,7 @@ module riscv_core#(
 );
 
 import riscv_pkg::*;
+
 // Local Variables:
 // verilog-library-directories:(".")
 // End:
@@ -119,6 +119,7 @@ logic			mepc_updata;		// From controller of controller.v
 logic [31:0]		mie;			// From ex_stage of ex_stage.v
 logic			mstatus_mie;		// From ex_stage of ex_stage.v
 logic [31:0]		mtvec;			// From ex_stage of ex_stage.v
+logic			mult_en_ex;		// From id_stage of id_stage.v
 logic [31:0]		pc_ex;			// From id_stage of id_stage.v
 logic [31:0]		pc_id;			// From if_stage of if_stage.v
 logic [31:0]		pc_if;			// From if_stage of if_stage.v
@@ -167,6 +168,8 @@ lsu_dtype_e         lsu_dtype_ex;
 lsu_op_e            lsu_op_mem;
 lsu_dtype_e         lsu_dtype_mem;
 lsu_op_e            lsu_op_wb;
+
+mult_op_e           mult_op_ex;
 
 mcause_e            mcause;
 mepc_mux_e          mepc_mux;
@@ -223,6 +226,7 @@ id_stage id_stage(
     /*AUTOINST*/
 		  // Interfaces
 		  .alu_op_ex		(alu_op_ex),
+		  .mult_op_ex		(mult_op_ex),
 		  .lsu_op_ex		(lsu_op_ex),
 		  .lsu_dtype_ex		(lsu_dtype_ex),
 		  // Outputs
@@ -233,6 +237,7 @@ id_stage id_stage(
 		  .src_a_ex		(src_a_ex[31:0]),
 		  .src_b_ex		(src_b_ex[31:0]),
 		  .src_c_ex		(src_c_ex[31:0]),
+		  .mult_en_ex		(mult_en_ex),
 		  .lsu_en_ex		(lsu_en_ex),
 		  .csr_en_ex		(csr_en_ex),
 		  .csr_op_ex		(csr_op_ex[1:0]),
@@ -300,6 +305,7 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  .alu_op_ex		(alu_op_ex),
 								  .lsu_op_ex		(lsu_op_ex),
 								  .lsu_dtype_ex		(lsu_dtype_ex),
+								  .mult_op_ex		(mult_op_ex),
 								  .lsu_op_mem		(lsu_op_mem),
 								  .lsu_dtype_mem	(lsu_dtype_mem),
 								  .mepc_mux		(mepc_mux),
@@ -345,6 +351,7 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  .src_b_ex		(src_b_ex[31:0]),
 								  .src_c_ex		(src_c_ex[31:0]),
 								  .lsu_en_ex		(lsu_en_ex),
+								  .mult_en_ex		(mult_en_ex),
 								  .csr_en_ex		(csr_en_ex),
 								  .csr_op_ex		(csr_op_ex[1:0]),
 								  .csr_addr_ex		(csr_addr_ex[11:0]),

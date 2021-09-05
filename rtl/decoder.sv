@@ -50,6 +50,10 @@ module decoder(/*AUTOARG*/
     output lsu_op_e         lsu_op,
     output lsu_dtype_e      lsu_dtype,
 
+    //mul-div
+    output logic            mult_en,
+    output mult_op_e        mult_op,
+
     //csr
     output logic            csr_en,
     output logic [1:0]      csr_op,
@@ -96,6 +100,14 @@ module decoder(/*AUTOARG*/
     rs1_rd_en   = 1'b1;         \
     src_a_mux   = SRC_A_REG_RS1;      \
     src_b_mux   = SRC_B_IMM_ITYPE;    \
+    rd_wr_en    = 1'b1;         
+
+`define MULT_DEC               \
+    mult_en      = 1'b1;        \
+    rs1_rd_en   = 1'b1;         \
+    rs2_rd_en   = 1'b1;         \
+    src_a_mux   = SRC_A_REG_RS1;      \
+    src_b_mux   = SRC_B_REG_RS2;      \
     rd_wr_en    = 1'b1;         
 
 logic [6:0]     opcode;
@@ -145,6 +157,15 @@ logic           bge;
 logic           bltu;
 logic           bgeu;
 
+logic           mul_instr;     
+logic           mulh_instr;    
+logic           mulhsu_instr;  
+logic           mulhu_instr;   
+logic           div_instr;     
+logic           divu_instr;    
+logic           rem_instr;     
+logic           remu_instr;    
+
 logic           csrrw;
 logic           csrrs;
 logic           csrrc;
@@ -184,8 +205,8 @@ assign jal_instr     = instr_value & ( opcode[6:0] == OPCODE_JAL ); //jar
 assign jalr_instr    = instr_value & ( opcode[6:0] == OPCODE_JALR ); //jalr
 assign load_instr    = instr_value & ( opcode[6:0] == OPCODE_LOAD ); //lb,lh,lw,lbu,lhu
 assign store_instr   = instr_value & ( opcode[6:0] == OPCODE_STORE ); //sb,sh,sw
-assign itype_instr   = instr_value & ( opcode[6:0] == OPCODE_IMM ); //addi,slti,sltiu,xori,andi,slli,srli,srai
-assign rtype_instr   = instr_value & ( opcode[6:0] == OPCODE_REG ); //add,sub,sll,slt,sltu,xor,srl,sra,or,and
+assign itype_instr   = instr_value & ( opcode[6:0] == OPCODE_OP_IMM ); //addi,slti,sltiu,xori,andi,slli,srli,srai
+assign rtype_instr   = instr_value & ( opcode[6:0] == OPCODE_OP ); //add,sub,sll,slt,sltu,xor,srl,sra,or,and
 assign sys_instr     = instr_value & ( opcode[6:0] == OPCODE_SYSTEM ); //csrrw,csrrs,csrrc,csrrwi,csrrsi,csrrci
 assign mismem_instr  = instr_value & ( opcode[6:0] == OPCODE_MISCMEM ); //fence, fence.i
 
@@ -243,6 +264,17 @@ assign wfi_instr    = sys_instr & (funct7==7'b0001000) & (rs2==5'b00101) & (rs1=
 assign fence_instr      = mismem_instr & (funct3==3'b000);
 assign fence_i_instr    = mismem_instr & (funct3==3'b001);
 
+//mul-div
+assign mul_instr        = rtype_instr & (funct7==7'b0000001) & (funct3==3'b000);
+assign mulh_instr       = rtype_instr & (funct7==7'b0000001) & (funct3==3'b001);
+assign mulhsu_instr     = rtype_instr & (funct7==7'b0000001) & (funct3==3'b010);
+assign mulhu_instr      = rtype_instr & (funct7==7'b0000001) & (funct3==3'b011);
+assign div_instr        = rtype_instr & (funct7==7'b0000001) & (funct3==3'b100);
+assign divu_instr       = rtype_instr & (funct7==7'b0000001) & (funct3==3'b101);
+assign rem_instr        = rtype_instr & (funct7==7'b0000001) & (funct3==3'b110);
+assign remu_instr       = rtype_instr & (funct7==7'b0000001) & (funct3==3'b111);
+
+
 assign rs1_rd_addr = rs1;
 assign rs2_rd_addr = rs2;
 assign rd_wr_addr = rd;
@@ -251,6 +283,9 @@ always @(*)begin
     alu_en       = 1'b0;
     alu_op       = ALU_ADD;
     
+    mult_en      = 1'b0;
+    mult_op      = MUL;
+
     lsu_en       = 1'b0;
     lsu_op       = LSU_OP_LD;
     lsu_dtype    = LSU_DTYPE_U_BYTE;
@@ -372,6 +407,14 @@ always @(*)begin
                     srl_instr : begin `ALU_R_DEC; alu_op = ALU_SRL; end
                     slt_instr : begin `ALU_R_DEC; alu_op = ALU_SLT; end
                     sltu_instr: begin `ALU_R_DEC; alu_op = ALU_SLTU;end
+                    mul_instr :     begin `MULT_DEC; mult_op = MUL; end
+                    mulh_instr:     begin `MULT_DEC; mult_op = MULH; end
+                    mulhsu_instr:   begin `MULT_DEC; mult_op = MULHSU; end
+                    mulhu_instr:    begin `MULT_DEC; mult_op = MULHU; end
+                    div_instr:      begin `MULT_DEC; mult_op = DIV;end
+                    divu_instr:     begin `MULT_DEC; mult_op = DIVU; end
+                    rem_instr:      begin `MULT_DEC; mult_op = REM; end
+                    remu_instr:     begin `MULT_DEC; mult_op = REMU; end
                     default:begin illegal_instr = 1'b1; end
                 endcase
             end

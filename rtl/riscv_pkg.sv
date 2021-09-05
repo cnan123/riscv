@@ -23,8 +23,10 @@ parameter OPCODE_JALR       = 7'b1100111;
 parameter OPCODE_BRANCH     = 7'b1100011;
 parameter OPCODE_LOAD       = 7'b0000011;
 parameter OPCODE_STORE      = 7'b0100011;
-parameter OPCODE_IMM        = 7'b0010011;
-parameter OPCODE_REG        = 7'b0110011;
+parameter OPCODE_OP_IMM     = 7'b0010011;
+parameter OPCODE_OP         = 7'b0110011;
+parameter OPCODE_OP_IMM_32  = 7'b0011011;
+parameter OPCODE_OP_32      = 7'b0111011;
 parameter OPCODE_MISCMEM    = 7'b0001111;
 parameter OPCODE_SYSTEM     = 7'b1110011;
 
@@ -114,6 +116,18 @@ typedef enum logic [ALU_OP_WIDTH-1:0] {
     ALU_LTU           = 6'b10_0100,
     ALU_GEU           = 6'b10_0101
 } alu_op_e;
+
+
+typedef enum logic [2:0] {
+    MUL,
+    MULH,
+    MULHSU,
+    MULHU,
+    DIV,
+    DIVU,
+    REM,
+    REMU   
+} mult_op_e;
 
 
 typedef enum logic[0:0] {

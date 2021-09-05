@@ -45,6 +45,9 @@ module ex_stage#(
     input lsu_op_e              lsu_op_ex,
     input lsu_dtype_e           lsu_dtype_ex,
 
+    input logic                 mult_en_ex,
+    input mult_op_e             mult_op_ex,
+
     input logic                 csr_en_ex,
     input logic [1:0]           csr_op_ex,
     input logic [11:0]          csr_addr_ex,
@@ -111,6 +114,7 @@ logic			branch_compare_result;	// From u_alu of alu.v
 logic [31:0]		csr_rdata;		// From csr_register of csr.v
 logic			illegal_csr;		// From csr_register of csr.v
 logic [31:0]		logic_result;		// From u_alu of alu.v
+logic [63:0]		mul_result;		// From multiplier of multiplier.v
 // End of automatics
 //////////////////////////////////////////////
 logic [31:0]    alu_result;
@@ -119,6 +123,9 @@ logic           branch;
 logic           alu;
 logic           equal_result;
 logic           less_than_result;
+
+logic           mul_en,div_en;
+logic [31:0]    mult_res;
 
 logic [31:0]    rd_wr_data_ex;
 logic [31:0]    return_addr;
@@ -152,6 +159,8 @@ alu u_alu(/*AUTOINST*/
 	  // Inputs
 	  .operator_a			(src_a_ex[31:0]),	 // Templated
 	  .operator_b			(src_b_ex[31:0]));	 // Templated
+
+
 
   
 /*csr AUTO_TEMPLATE(
@@ -192,6 +201,44 @@ csr csr_register(
 		 .timer_intr		(timer_intr),
 		 .software_intr		(software_intr));
 
+
+//////////////////////////////////////////////
+//multiplier
+//////////////////////////////////////////////
+assign mul_en = mult_en_ex & ( mult_op_ex inside {MUL, MULH, MULHU, MULHSU} );
+assign div_en = mult_en_ex & ( mult_op_ex inside {DIV, DIVU, REM, REMU} );
+
+always_comb begin
+    mult_res[31:0] = 32'h0;
+    if(mult_en_ex)begin
+        unique case(mult_op_ex)
+            MULH, MULHU, MULHSU: mult_res = mul_result[63:32];
+            MUL: mult_res = mul_result[31:0];
+            default: mult_res = 32'h0;
+        endcase
+    end
+end
+
+/*multiplier AUTO_TEMPLATE(
+    .en (mul_en),
+    .result (mul_result[]),
+    .op (mult_op_ex),
+    .op_a   (src_a_ex[]),
+    .op_b   (src_b_ex[]),
+);
+*/
+multiplier multiplier(/*AUTOINST*/
+		      // Interfaces
+		      .op		(mult_op_ex),		 // Templated
+		      // Outputs
+		      .result		(mul_result[63:0]),	 // Templated
+		      // Inputs
+		      .en		(mul_en),		 // Templated
+		      .op_a		(src_a_ex[31:0]),	 // Templated
+		      .op_b		(src_b_ex[31:0]));	 // Templated
+
+
+
 //////////////////////////////////////////////
 //branch
 //////////////////////////////////////////////
@@ -199,7 +246,7 @@ assign branch_taken = branch_compare_result & alu_en_ex;
 assign branch_target_addr = pc_ex + src_c_ex;
 
 //////////////////////////////////////////////
-//branch
+//jump
 //////////////////////////////////////////////
 assign jump_taken = jump_ex;
 assign jump_target_addr = adder_result;
@@ -262,18 +309,29 @@ end
 
 always @(*)begin
     rd_wr_data_ex = 32'h0;
-    if( jump_ex )begin
-        rd_wr_data_ex = return_addr;
-    end else if(lsu_en_ex)begin
-        rd_wr_data_ex = src_c_ex;
-    end else if(csr_en_ex)begin
-        rd_wr_data_ex = csr_rdata;
-    end else begin
-        rd_wr_data_ex = alu_result;
+    if(alu_en_ex)begin
+        if(jump_ex)begin
+            rd_wr_data_ex = return_addr;
+        end else begin
+            rd_wr_data_ex = alu_result;
+        end
     end
+
+    unique case(1)
+        lsu_en_ex:begin
+            rd_wr_data_ex = src_c_ex;
+        end
+        csr_en_ex:begin
+            rd_wr_data_ex = csr_rdata;
+        end
+        mult_en_ex:begin
+            rd_wr_data_ex = mult_res;
+        end
+        default:;
+    endcase
 end
 
-assign forward_ex_en    = rd_wr_en_ex & valid_ex & (~lsu_en_ex);
+assign forward_ex_en    = rd_wr_en_ex & valid_ex & alu_en_ex;
 assign forward_ex_tag   = rd_wr_tag_ex;
 assign forward_ex_addr  = rd_wr_addr_ex;
 assign forward_ex_wdata = rd_wr_data_ex;

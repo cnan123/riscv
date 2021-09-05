@@ -63,6 +63,9 @@ module id_stage(
     output logic [31:0]         src_a_ex,         
     output logic [31:0]         src_b_ex,         
     output logic [31:0]         src_c_ex,         
+
+    output logic                mult_en_ex,
+    output mult_op_e            mult_op_ex,
     
     output logic                lsu_en_ex,  
     output lsu_op_e             lsu_op_ex,
@@ -138,6 +141,9 @@ logic                   jump_id;
 logic                   lsu_en_id;
 lsu_op_e                lsu_op_id;
 lsu_dtype_e             lsu_dtype_id;
+
+logic                   mult_en;
+mult_op_e               mult_op_id;
 
 logic                   csr_en_id;
 logic [1:0]             csr_op_id;
@@ -230,6 +236,9 @@ decoder decoder( /*AUTOINST*/
 		.lsu_en			    (lsu_en_id),
 		.lsu_op			    (lsu_op_id),
 		.lsu_dtype		    (lsu_dtype_id),
+
+        .mult_en            (mult_en_id),
+        .mult_op            (mult_op_id),
 
 		.csr_en			    (csr_en_id),
 		.csr_op			    (csr_op_id[1:0]),
@@ -367,6 +376,9 @@ always @(posedge clk or negedge reset_n)begin
         lsu_op_ex       <= LSU_OP_LD;
         lsu_dtype_ex    <= LSU_DTYPE_U_BYTE;
         
+        mult_en_ex      <= 1'b0;
+        mult_op_ex      <= MUL;
+
         csr_en_ex       <= 1'b0;
         csr_op_ex       <= CSR_OP_READ;
 
@@ -384,6 +396,7 @@ always @(posedge clk or negedge reset_n)begin
     //flush pipeline: program flow was broken such as jump/branch/interrupt/exception
         alu_en_ex       <= 1'b0;
         lsu_en_ex       <= 1'b0;
+        mult_en_ex      <= 1'b0;
         csr_en_ex       <= 1'b0;
         branch_ex       <= 1'b0;
         jump_ex         <= 1'b0;
@@ -396,6 +409,9 @@ always @(posedge clk or negedge reset_n)begin
         lsu_en_ex       <= lsu_en_id;
         lsu_op_ex       <= lsu_op_id;
         lsu_dtype_ex    <= lsu_dtype_id;
+
+        mult_en_ex      <= mult_en_id;
+        mult_op_ex      <= mult_op_id;
         
         csr_en_ex       <= csr_en_id;
         csr_op_ex       <= csr_op_id;
