@@ -60,7 +60,7 @@ assign rf_wr_tag   = rd_wr_tag_wb;
 assign rf_wr_addr  = rd_wr_addr_wb;
 assign rf_wr_data  = (lsu_en_wb & (lsu_op_wb==LSU_OP_LD)) ? lsu_rdata_wb : rd_wr_data_wb;
 
-assign clr_dirty_wb_en      = ready_wb & rd_wr_en_wb & flush_W;
+assign clr_dirty_wb_en      = rd_wr_en_wb & flush_W;
 assign clr_dirty_wb_addr    = rd_wr_addr_wb;
 
 assign is_lsu_load_err      = lsu_valid_wb & lsu_err_wb & (lsu_op_wb==LSU_OP_LD);

@@ -361,7 +361,7 @@ assign forward_ex_tag   = rd_wr_tag_ex;
 assign forward_ex_addr  = rd_wr_addr_ex;
 assign forward_ex_wdata = rd_wr_data_ex;
 
-assign clr_dirty_ex_en      = forward_ex_en & flush_E;
+assign clr_dirty_ex_en      = rd_wr_en_ex & flush_E;
 assign clr_dirty_ex_addr    = rd_wr_addr_ex;
 
 
