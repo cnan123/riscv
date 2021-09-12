@@ -100,14 +100,8 @@ for(genvar i = 0; i < DEPTH; i++) begin
     end
 end
 
-always @(posedge clk or negedge reset_n)begin
-    if( ! reset_n )begin
-        rd_data_valid <= 1'b0;
-    end else begin
-        rd_data_valid <= pop;
-    end
-end
 assign rd_data = fifo_data_q[0];
+assign rd_data_valid = pop;
 
 assign fifo_full = (&valid[DEPTH-1:0]);
 assign fifo_almost_full = (&valid[DEPTH-2:0]);

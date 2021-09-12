@@ -36,122 +36,232 @@ module tb_memory(
 
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
+// Beginning of automatic wires (for undeclared instantiated-module outputs)
+// End of automatics
 //////////////////////////////////////////////
 
 
 //////////////////////////////////////////////
 //main code
-parameter DEPTH         = 16384*4;
+parameter DEPTH         = 16384;
 parameter ADDR_WIDTH    = $clog2(DEPTH);
 
-parameter ADDR_L    = 0;
-parameter ADDR_H    = 16'hffff;
+parameter IRAM_ADDR_L    = 32'h00000;
+parameter IRAM_ADDR_H    = 32'h0ffff;
 
-logic [31:0]    mem    [0:DEPTH-1];
-logic [1:0]     req;
-logic [1:0]     grant;
-logic           instr_pick;
-logic           data_pick;
-logic           mem_en;
-logic           mem_wr;
-logic [3:0]     mem_byteen;
-logic [31:0]    mem_wdata;
-logic [31:0]    mem_rdata;
-logic [ADDR_WIDTH-1:0] mem_addr;
-logic [31:0]    data_mask;
+parameter DRAM_ADDR_L    = 32'h10000;
+parameter DRAM_ADDR_H    = 32'h1ffff;
 
 
-logic instr_match_mem,data_match_mem;
-logic instr_match_none,data_match_none;
-logic match_none_instr_pick,match_none_data_pick;
+logic ibus_match_iram,ibus_match_dram,ibus_match_default;
+logic ibus_iram_pick,ibus_dram_pick,ibus_none_pick;
+logic dbus_match_iram,dbus_match_dram,dbus_match_default;
+logic dbus_iram_pick,dbus_dram_pick,dbus_none_pick;
+
+logic [1:0] iram_req,iram_grant;
+logic iram_en;
+logic iram_we;
+logic [ADDR_WIDTH-1:0] iram_addr;
+logic [3:0] iram_be;
+logic [31:0] iram_wdata;
+logic [31:0] iram_rdata;
+
+logic [1:0] dram_req,dram_grant;
+logic dram_en;
+logic dram_we;
+logic [ADDR_WIDTH-1:0] dram_addr;
+logic [3:0] dram_be;
+logic [31:0] dram_wdata;
+logic [31:0] dram_rdata;
 
 //////////////////////////////////////////////
-//response 
+//iram router
 //////////////////////////////////////////////
-assign instr_gnt            = (instr_match_mem & grant[0]) | instr_match_none;
-assign instr_rdata[31:0]    = instr_pick ? mem_rdata[31:0] : 32'hdeadbeef;
-assign instr_valid          = instr_pick | match_none_instr_pick;
+assign ibus_match_iram      = instr_req & ( instr_addr >= IRAM_ADDR_L ) & (instr_addr <= IRAM_ADDR_H );
+assign ibus_match_dram      = instr_req & ( instr_addr >= DRAM_ADDR_L ) & (instr_addr <= DRAM_ADDR_H );
+assign ibus_match_default   = instr_req & ( ~(ibus_match_iram | ibus_match_dram) );
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        ibus_iram_pick  <= 1'b0;
+        ibus_dram_pick  <= 1'b0;
+        ibus_none_pick  <= 1'b0;
+    end else if( instr_req & instr_gnt )begin
+        ibus_iram_pick  <= ibus_match_iram;
+        ibus_dram_pick  <= ibus_match_dram;
+        ibus_none_pick  <= ibus_match_default;
+    end else begin
+        ibus_iram_pick  <= 1'b0;
+        ibus_dram_pick  <= 1'b0;
+        ibus_none_pick  <= 1'b0;
+    end
+end
+
+assign instr_gnt            = (
+    ( ibus_match_iram & iram_grant[0] ) |
+    ( ibus_match_dram & dram_grant[0] ) |
+    ( ibus_match_default ) 
+);
+
+assign instr_rdata[31:0]    = (
+    ( {32{ibus_iram_pick}} & iram_rdata ) |
+    ( {32{ibus_dram_pick}} & dram_rdata ) |
+    ( {32{ibus_none_pick}} & 32'hdeadbeef )
+);
+
+assign instr_valid = (
+    ibus_iram_pick |
+    ibus_dram_pick |
+    ibus_none_pick 
+);
+
 assign instr_err            = 1'b0;
 
-assign data_gnt             = (data_match_mem & grant[1]) | data_match_none;
-assign data_rdata[31:0]     = data_pick ? mem_rdata[31:0] : 32'hdeadbeef;
-assign data_valid           = data_pick | match_none_data_pick;
 
 //////////////////////////////////////////////
-// router
+//dram router
 //////////////////////////////////////////////
-
-assign instr_match_mem  = instr_req & ( instr_addr >= ADDR_L ) & (instr_addr <= ADDR_H );
-assign data_match_mem   = data_req & ( data_addr >= ADDR_L ) & (data_addr <= ADDR_H );
-
-assign instr_match_none = instr_req & (~instr_match_mem);
-assign data_match_none = data_req & (~data_match_mem);
+assign dbus_match_iram      = data_req & ( data_addr >= IRAM_ADDR_L ) & (data_addr <= IRAM_ADDR_H );
+assign dbus_match_dram      = data_req & ( data_addr >= DRAM_ADDR_L ) & (data_addr <= DRAM_ADDR_H );
+assign dbus_match_default   = data_req & ( ~(dbus_match_iram | dbus_match_dram) );
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
-        match_none_instr_pick <= 1'b0;
-        match_none_data_pick <= 1'b0;
+        dbus_iram_pick  <= 1'b0;
+        dbus_dram_pick  <= 1'b0;
+        dbus_none_pick  <= 1'b0;
+    end else if( data_req & data_gnt )begin
+        dbus_iram_pick  <= dbus_match_iram;
+        dbus_dram_pick  <= dbus_match_dram;
+        dbus_none_pick  <= dbus_match_default;
     end else begin
-        match_none_instr_pick   <= instr_match_none;
-        match_none_data_pick    <= data_match_none;
+        dbus_iram_pick  <= 1'b0;
+        dbus_dram_pick  <= 1'b0;
+        dbus_none_pick  <= 1'b0;
     end
 end
 
+assign data_gnt            = (
+    ( dbus_match_iram & iram_grant[1] ) |
+    ( dbus_match_dram & dram_grant[1] ) |
+    ( dbus_match_default ) 
+);
+
+assign data_rdata[31:0]    = (
+    ( {32{dbus_iram_pick}} & iram_rdata ) |
+    ( {32{dbus_dram_pick}} & dram_rdata ) |
+    ( {32{dbus_none_pick}} & 32'hdeadbeef )
+);
+
+assign data_valid = (
+    dbus_iram_pick |
+    dbus_dram_pick |
+    dbus_none_pick 
+);
+
+
 //////////////////////////////////////////////
-//arbiter
+//iram
 //////////////////////////////////////////////
-
-assign req[0]   = instr_match_mem;
-assign req[1]   = data_match_mem;
-
-
-always @(posedge clk or negedge reset_n)begin
-    if(!reset_n)begin
-        instr_pick <= 1'b0;
-        data_pick <= 1'b0;
-    end else begin
-        instr_pick <= req[0] & grant[0];
-        data_pick <= req[1] & grant[1];
-    end
-end
+assign iram_req[0] = ibus_match_iram;
+assign iram_req[1] = dbus_match_iram;
 
 arbiter #(
     .NUM        (2)
-) arbiter(
+) arbiter_I(
     .clk        (clk),
     .reset_n    (reset_n),
-    .req        (req[1:0]),
-    .grant      (grant[1:0])
+    .req        (iram_req[1:0]),
+    .grant      (iram_grant[1:0])
+);
+
+
+assign iram_en = (
+    (iram_req[0] & iram_grant[0]) | 
+    (iram_req[1] & iram_grant[1])
+);
+
+assign iram_we = (
+    (iram_req[1] & iram_grant[1] & data_wr )
+);
+
+assign iram_addr = (
+    ( { ADDR_WIDTH {iram_grant[0]} } & instr_addr[2+:ADDR_WIDTH] ) |
+    ( { ADDR_WIDTH {iram_grant[1]} } & data_addr[2+:ADDR_WIDTH] ) 
+);
+
+assign iram_be = (
+    ( {4{iram_grant[0]}} & 4'hf ) |
+    ( {4{iram_grant[1]}} & data_byteen ) 
+);
+
+assign iram_wdata = (
+    ( {32{iram_grant[1]}} & data_wdata )
+);
+
+sram #(
+    .DEPTH		(DEPTH)
+)iram(
+    .clk		(clk),
+    .en		    (iram_en),
+    .we		    (iram_we),
+    .addr		(iram_addr[ADDR_WIDTH-1:0]),
+    .be		    (iram_be[3:0]),
+    .wdata		(iram_wdata[31:0]),
+    .rdata		(iram_rdata[31:0])
 );
 
 
 //////////////////////////////////////////////
-//memory
+//dram
 //////////////////////////////////////////////
-assign mem_en           = ( |grant[1:0] );
-assign mem_wr           = ( grant[1] & data_wr );
-assign mem_byteen[3:0]  = ( {4{grant[0]}} & 4'hf ) | ( {4{grant[1]}} & data_byteen[3:0] );
-assign mem_wdata[31:0]  = data_wdata[31:0];
-assign mem_addr[ADDR_WIDTH-1:0] = (
-    ( {ADDR_WIDTH{grant[0]}} & instr_addr[ADDR_WIDTH+1:2] ) |
-    ( {ADDR_WIDTH{grant[1]}} & data_addr[ADDR_WIDTH+1:2] )
+assign dram_req[0] = ibus_match_dram;
+assign dram_req[1] = dbus_match_dram;
+
+arbiter #(
+    .NUM        (2)
+) arbiter_D(
+    .clk        (clk),
+    .reset_n    (reset_n),
+    .req        (dram_req[1:0]),
+    .grant      (dram_grant[1:0])
 );
 
-assign data_mask[31:0] = { {8{mem_byteen[3]}},{8{mem_byteen[2]}},{8{mem_byteen[1]}},{8{mem_byteen[0]}} };
 
-always @(posedge clk)begin
-    if(mem_en & mem_wr)begin
-        mem[mem_addr[ADDR_WIDTH-1:0]][31:0] <= (
-            ( mem[mem_addr[ADDR_WIDTH-1:0]][31:0] & (~data_mask[31:0]) ) |
-            ( mem_wdata[31:0] & data_mask[31:0] )
-        );
-    end
-end
+assign dram_en = (
+    (dram_req[0] & dram_grant[0]) | 
+    (dram_req[1] & dram_grant[1])
+);
 
-always @(posedge clk)begin
-    if(mem_en & ~mem_wr)begin
-       mem_rdata[31:0] <= mem[mem_addr[ADDR_WIDTH-1:0]]; 
-    end
-end
+assign dram_we = (
+    (dram_req[1] & dram_grant[1] & data_wr )
+);
+
+assign dram_addr = (
+    ( { ADDR_WIDTH {dram_grant[0]} } & instr_addr[2+:ADDR_WIDTH] ) |
+    ( { ADDR_WIDTH {dram_grant[1]} } & data_addr[2+:ADDR_WIDTH] ) 
+);
+
+assign dram_be = (
+    ( {4{dram_grant[0]}} & 4'hf ) |
+    ( {4{dram_grant[1]}} & data_byteen ) 
+);
+
+assign dram_wdata = (
+    ( {32{dram_grant[1]}} & data_wdata )
+);
+
+
+sram #(
+    .DEPTH		(DEPTH)
+)dram(
+    .clk		(clk),
+    .en		    (dram_en),
+    .we		    (dram_we),
+    .addr		(dram_addr[ADDR_WIDTH-1:0]),
+    .be		    (dram_be[3:0]),
+    .wdata		(dram_wdata[31:0]),
+    .rdata		(dram_rdata[31:0])
+);
 
 endmodule

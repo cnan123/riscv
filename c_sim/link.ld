@@ -3,12 +3,12 @@ OUTPUT_ARCH(riscv)
 
 MEMORY
 {
-    rom             : ORIGIN = 0x00000000, LENGTH = 0x1000 
-    vector         : ORIGIN = 0x00001000, LENGTH = 0x400 /*1KB*/
-    sram            : ORIGIN = 0x00002000, LENGTH = 0x4000
+    rom             : ORIGIN = 0x00000000, LENGTH = 0xFC00 
+    vector          : ORIGIN = 0x0000FC00, LENGTH = 0x400 /*1KB*/
+    sram            : ORIGIN = 0x00010000, LENGTH = 0x10000
 }
 
-_min_stack      = 0x2000;
+_min_stack      = 0x8000;
 _stack_len      = LENGTH(sram);
 _stack_start    = ORIGIN(sram) + LENGTH(sram);
 

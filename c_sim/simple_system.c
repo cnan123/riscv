@@ -35,7 +35,7 @@ void trap_handle( uint32_t mcause, uint32_t mepc )
     //printinfo("enter intr handle!!!\n",1);
     //printinfo("mcause is %d\n",num);
 
-    if( interrupt_handle[num] != NULL){
+    if( interrupt_handle[num] != 0){
         ( (interrupt_handle_t)(interrupt_handle[num][0]) )( interrupt_handle[num][1] );
     }else{
         printinfo("interrupt handle not registerd\n",1);
@@ -57,7 +57,7 @@ void exception_handle ( uint32_t mcause, uint32_t mepc )
     printinfo("enter exception handle!!!\n",1);
     printinfo("mcause is %h\n",1);
 
-    if( exc_handle != NULL){
+    if( exc_handle != 0){
         ( (exception_handle_t)(exc_handle[0]) )( exc_handle[1] );
     }else{
         //while(1){;}
@@ -175,5 +175,29 @@ void soft_irq_clr(void)
 void timer_config( unsigned int count ){
     REG_WR(CMD, TIMER);
     REG_WR(ARG, count);
+}
+
+
+int putchar(int c) {
+  REG_WR( UART, (unsigned char)c);
+
+  return c;
+}
+
+///////////////////////////////////////////////////////////
+void pcount_reset() {
+  asm volatile( "csrw mcycle,         x0\n");
+}
+
+void pcount_enable(int enable) {
+  // Note cycle is disabled with everything else
+  //unsigned int inhibit_val = enable ? 0x0 : 0xFFFFFFFF;
+  // CSR 0x320 was called `mucounteren` in the privileged spec v1.9.1, it was
+  // then dropped in v1.10, and then re-added in v1.11 with the name
+  // `mcountinhibit`. Unfortunately, the version of binutils we use only allows
+  // the old name, and LLVM only supports the new name (though this is changed
+  // on trunk to support both), so we use the numeric value here for maximum
+  // compatibility.
+  asm volatile("csrw  0x320, %0\n" : : "r"(enable));
 }
 

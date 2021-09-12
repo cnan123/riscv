@@ -60,7 +60,7 @@ initial begin
    // $finish;
 end
 
-always #5 clk<=~clk;
+always #1 clk<=~clk;
 
 initial begin
     $fsdbDumpfile("verilog.fsdb");
@@ -73,10 +73,11 @@ initial begin
     $fsdbDumpMDA();
 end
 
-
-`define PATH_MEM tb.tb_memory
+`define PATH_IRAM_MEM tb.tb_memory.iram
+`define PATH_DRAM_MEM tb.tb_memory.dram
 initial begin
-    $readmemh("./instr_data.dat",`PATH_MEM.mem);
+    $readmemh("./program_instr.dat",`PATH_IRAM_MEM.MEM);
+    $readmemh("./program_data.dat",`PATH_DRAM_MEM.MEM);
 end
 
 assign boot_addr = 32'h0;

@@ -10,11 +10,11 @@
 //================================================================
 #ifndef _SIMPLE_SYSTEM_H
 #define _SIMPLE_SYSTEM_H
+#include <stdint.h>
 
 #define CMD     0xfffffffc
 #define ARG     0xfffffff8
 #define UART    0xfffffff4
-#define NULL 0
 
 #define PASS 0
 #define FAIL 2
@@ -31,13 +31,13 @@
 #define REG_WR(addr, val) (*( (volatile uint32_t *)(addr) ) = val)
 #define REG_RD(addr, val) ( val = *( (volatile uint32_t *)(addr) ) )
 
+#define PCOUNT_READ(name, dst) asm volatile("csrr %0, " #name ";" : "=r"(dst))
+
 #define SOFT_IRQ    3
 #define TIMER_IRQ   7
 #define EXTERN_IRQ  11
 
 //#define CSR_RD( csr, dst ) asm volatile("csrr %0, "#name" ": "=r"(dst) : )
-
-typedef unsigned int uint32_t;
 
 void interupt_enable( int interupt_num, void* handle, void* arg );
 void trap_handle( uint32_t mcause, uint32_t mepc );
@@ -49,6 +49,8 @@ void print_dec( uint32_t n);
 void print_hex(unsigned int hex);
 void my_putchar ( char c );
 
+int putchar(int c); 
+
 void pass( const char *msg );
 void fail( const char *msg );
 
@@ -59,5 +61,9 @@ void extern_irq_clr(void);
 void timer_irq_clr(void);
 void soft_irq_clr(void);
 void timer_config( unsigned int count );
+
+
+void pcount_enable(int enable);
+void pcount_reset();
 #endif
 

@@ -1,6 +1,7 @@
 
 +incdir+${PROJ_PATH}/sim/tb
 
+${PROJ_PATH}/sim/tb/sram.sv
 ${PROJ_PATH}/sim/tb/tb_memory.v
 ${PROJ_PATH}/sim/tb/arbiter.v
 ${PROJ_PATH}/sim/tb/tb.v

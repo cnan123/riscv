@@ -65,6 +65,9 @@ logic       mepc_en                 ;
 logic       mcause_en               ;
 logic       mtval_en                ;
 logic       mip_en                  ;
+logic       mcounter_en;
+logic       mcountinhit_en;
+logic       mcycle_en;
 logic       illegal_csr_register    ;
 
 
@@ -83,6 +86,10 @@ logic [31:0] misa_q;
 logic [31:0] mscratch_q;  
 logic [31:0] mepc_n,mepc_q;      
 logic [31:0] mcause_n,mcause_q;    
+logic [31:0] mcounteren_n,mcounteren_q;    
+logic [31:0] mcountinhit_n,mcountinhit_q;    
+logic [31:0] mcycle_n,mcycle_q;    
+
 logic [31:0] mtval_q;     
 
 logic [31:0] rdata;
@@ -104,25 +111,96 @@ always @(*)begin
     mcause_en               = 1'b0;
     mtval_en                = 1'b0;
     mip_en                  = 1'b0;
+    mcounter_en             = 1'b0;
+    mcountinhit_en          = 1'b0;
+    mcycle_en               = 1'b0;
+
     csr_rdata               = 32'h0;
     illegal_csr             = 1'b0;
 
     if( csr_en )begin
         unique case(csr_addr[11:0])
-            MVENDORID   : begin mvendorid_en  = (~illegal_csr); csr_rdata = mvendorid_q; illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MARCHID     : begin marchid_en    = (~illegal_csr); csr_rdata = marchid_q;   illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MIMPID      : begin mimpid_en     = (~illegal_csr); csr_rdata = mimpid_q;    illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MHARTID     : begin mhartid_en    = (~illegal_csr); csr_rdata = mhartid_q;   illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MSTARUS     : begin mstatus_en    = (~illegal_csr); csr_rdata = mstatus_q;   illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MISA        : begin misa_en       = (~illegal_csr); csr_rdata = misa_q;      illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MIE         : begin mie_en        = (~illegal_csr); csr_rdata = mie_q;       illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MTVEC       : begin mtvec_en      = (~illegal_csr); csr_rdata = mtvec_q;     illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MSCRATCH    : begin mscratch_en   = (~illegal_csr); csr_rdata = mscratch_q;  illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MEPC        : begin mepc_en       = (~illegal_csr); csr_rdata = mepc_q;      illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MCAUSE      : begin mcause_en     = (~illegal_csr); csr_rdata = mcause_q;    illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MTVAL       : begin mtval_en      = (~illegal_csr); csr_rdata = mtval_q;     illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            MIP         : begin mip_en        = (~illegal_csr); csr_rdata = mip_q;       illegal_csr = (privilege_mode_q != PRIV_LVL_M); end
-            default     : begin illegal_csr = 1'b1; end
+            MVENDORID : begin 
+                mvendorid_en    = (~illegal_csr); 
+                csr_rdata       = mvendorid_q; 
+                illegal_csr     = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MARCHID : begin 
+                marchid_en  = (~illegal_csr); 
+                csr_rdata   = marchid_q;   
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MIMPID : begin 
+                mimpid_en   = (~illegal_csr); 
+                csr_rdata   = mimpid_q;    
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MHARTID : begin 
+                mhartid_en  = (~illegal_csr); 
+                csr_rdata   = mhartid_q;   
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MSTARUS : begin 
+                mstatus_en  = (~illegal_csr); 
+                csr_rdata   = mstatus_q;   
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MISA : begin 
+                misa_en     = (~illegal_csr); 
+                csr_rdata   = misa_q;      
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MIE : begin 
+                mie_en      = (~illegal_csr); 
+                csr_rdata   = mie_q;       
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MTVEC : begin 
+                mtvec_en    = (~illegal_csr); 
+                csr_rdata   = mtvec_q;     
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MSCRATCH : begin 
+                mscratch_en = (~illegal_csr); 
+                csr_rdata   = mscratch_q;  
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MEPC : begin 
+                mepc_en     = (~illegal_csr); 
+                csr_rdata   = mepc_q;      
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MCAUSE : begin 
+                mcause_en   = (~illegal_csr); 
+                csr_rdata   = mcause_q;    
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MTVAL : begin 
+                mtval_en    = (~illegal_csr); 
+                csr_rdata   = mtval_q;     
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MIP : begin 
+                mip_en      = (~illegal_csr); 
+                csr_rdata   = mip_q;       
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MCOUNTEREN  : begin
+                mcounter_en = (~illegal_csr);
+                csr_rdata   = mcounteren_q;
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MCOUNTINHIBIT :begin 
+                mcountinhit_en  = (~illegal_csr);
+                csr_rdata       = mcountinhit_q;
+                illegal_csr     = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            MCYCLE : begin 
+                mcycle_en   = (~illegal_csr);
+                csr_rdata   = mcycle_q;
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            default : begin illegal_csr = 1'b1; end
         endcase
     end
 end
@@ -384,6 +462,58 @@ end
 assign privilege_mode = privilege_mode_q;
 
 //////////////////////////////////////////////
+//counter
+//////////////////////////////////////////////
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        mcounteren_q    <= 32'h0;
+        mcountinhit_q   <= 32'h0;
+        mcycle_q        <= 32'h0;
+    end else begin
+        mcounteren_q    <= mcounteren_n;
+        mcountinhit_q   <= mcountinhit_n;
+        mcycle_q        <= mcycle_n;
+    end
+end
+
+always_comb begin
+    mcounteren_n    = mcounteren_q;
+    if( mepc_en )begin
+        unique case(csr_op)
+           CSR_OP_WRITE:   mcounteren_n = csr_wdata[31:0];
+           CSR_OP_SET:     mcounteren_n = mcounteren_q | csr_wdata[31:0];
+           CSR_OP_CLEAR:   mcounteren_n = mcounteren_q & (~csr_wdata[31:0]);
+           default:;
+        endcase
+    end
+end
+
+always_comb begin
+    mcountinhit_n    = mcountinhit_q;
+    if( mcountinhit_en )begin
+        unique case(csr_op)
+           CSR_OP_WRITE:   mcountinhit_n = csr_wdata[31:0];
+           CSR_OP_SET:     mcountinhit_n = mcountinhit_q | csr_wdata[31:0];
+           CSR_OP_CLEAR:   mcountinhit_n = mcountinhit_q & (~ csr_wdata[31:0]);
+           default:;
+        endcase
+    end
+end
+
+always_comb begin
+    mcycle_n    = mcycle_q + mcountinhit_q[0];
+    if( mcycle_en )begin
+        unique case(csr_op)
+           CSR_OP_WRITE:   mcycle_n = csr_wdata[31:0];
+           CSR_OP_SET:     mcycle_n = mcycle_q | csr_wdata[31:0];
+           CSR_OP_CLEAR:   mcycle_n = mcycle_q & (~csr_wdata[31:0]);
+           default:;
+        endcase
+    end
+end
+
+
+
 //
 //
 endmodule

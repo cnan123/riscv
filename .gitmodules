@@ -1,0 +1,3 @@
+[submodule "c_sim/coremark"]
+	path = c_sim/coremark
+	url = https://github.com/eembc/coremark.git

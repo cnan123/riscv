@@ -185,6 +185,10 @@ always @(posedge clk or negedge reset_n)begin
         hold_rdata <= 16'h0;
         hold_rdata_value <= 1'b0;
         hold_rdata_err <= 1'b0;
+    end else if( ~ready_if )begin
+        hold_rdata <= hold_rdata;
+        hold_rdata_value <= hold_rdata_value;
+        hold_rdata_err <= hold_rdata_err;
     end else if(fetch_en & ( (pc_unalign & rdata_value) | is_compress_intr ))begin
         hold_rdata <= rdata[31:16];
         hold_rdata_value <= 1'b1;
@@ -203,6 +207,10 @@ assign fifo_pop = fetch_en && (~fifo_empty) && (~hold_data_is_compress);
 assign fifo_clear = set_pc_valid | branch_prediction_taken;
 
 assign read_from_fifo = fifo_pop | hold_data_is_compress | (is_compress_intr & pc_unalign);
+
+/////////////////////////////////////////////////
+//fetch control
+/////////////////////////////////////////////////
 
 /////////////////////////////////////////////////
 //compress instruction decoder

@@ -19,6 +19,7 @@ GetOptions (
     "module=s"      => \$module,    # numeric
     "case=s"        => \$case,      # string
     "isa"           => \$isa,      # string
+    "coremark"      => \$coremark,  # string
     "d=s"           => \@rtl_defines,
     "cd=s"          => \@c_defines,
     "c_comp=s"      => \@c_comp,
@@ -35,34 +36,47 @@ print "$proj_path \n";
 #c case compile
 #================================================================
 my $dir = getcwd;
+my $objcopy_tool = "/home/tool/riscv-gcc/bin/riscv64-unknown-elf-objcopy";
+my $objdump_tool = "/home/tool/riscv-gcc/bin/riscv64-unknown-elf-objdump";
 
-if( defined($isa) ){
-    if( ! defined($module) ){
-        $module = "rv32ui";
+if( ! defined($coremark) ){
+    if( defined($isa) ){
+        if( ! defined($module) ){
+            $module = "rv32ui";
+        }
+    
+        $isa_dir = "$proj_path/riscv_riscv-tests/isa";
+        chdir($isa_dir) or die "can't cd' $isa_dir , $!";;
+        system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module clean ");
+        system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module ");
+        `cp  -rf $case.* $dir`;
+        system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module clean ");
+    
+        chdir($dir) or die "can't cd' $dir , $!";;
+    }else{
+        $case_dir ="$proj_path/c_sim"; 
+        chdir($case_dir) or die "can't cd' $case_dir , $!";;
+        system("make -f $case_dir/Makefile PROGRAM_DIR=$module PROGRAM=$case clean ");
+        system("make -f $case_dir/Makefile PROGRAM_DIR=$module PROGRAM=$case");
+        `cp -rf $case.* $dir`;
+        system("make -f $case_dir/Makefile PROGRAM_DIR=$module PROGRAM=$case clean ");
+    
+        chdir($dir) or die "can't cd' $dir , $!";;
     }
-
-    $isa_dir = "$proj_path/riscv_riscv-tests/isa";
-    chdir($isa_dir) or die "can't cd' $isa_dir , $!";;
-    system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module clean ");
-    system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module ");
-    `cp  -rf $case.* $dir`;
-    system("make -f $isa_dir/Makefile_cn PROGRAM=$case PROGRAM_DIR=$module clean ");
-
-    chdir($dir) or die "can't cd' $dir , $!";;
 }else{
-    $case_dir ="$proj_path/c_sim"; 
-    chdir($case_dir) or die "can't cd' $case_dir , $!";;
-    system("make -f $case_dir/Makefile PROGRAM_DIR=$module PROGRAM=$case clean ");
-    system("make -f $case_dir/Makefile PROGRAM_DIR=$module PROGRAM=$case");
-    `cp -rf $case.* $dir`;
-    system("make -f $case_dir/Makefile PROGRAM_DIR=$module PROGRAM=$case clean ");
-
-    chdir($dir) or die "can't cd' $dir , $!";;
+    $case = "coremark";
+    $coremark_path = "$proj_path/c_sim/benchmarks/coremark";
+    chdir($coremark_path) or die "can't cd' $coremark_path , $!";;
+    system("make -f $coremark_path/Makefile");
+    `cp $coremark_path/coremark.elf .`;
+    `$objcopy_tool -O ihex coremark.elf coremark.hex`;
+	`$objdump_tool --disassemble-all coremark.elf > coremark.dump`;
 }
 
-if(-e "$pwd/instr_data.dat"){ `rm -rf $pwd/instr_data.dat`; }
+if( ! (-e "$case.hex") ){ die "$case.hex not exist"; }
 
-system("dump_hex.pl -base 0x0 -length 0x10000 -i $case.hex");
+system("dump_hex.pl -base 0x0 -length 0x10000 -i $case.hex -o program_instr.dat");
+system("dump_hex.pl -base 0x10000 -length 0x20000 -i $case.hex -o program_data.dat");
 
 #================================================================
 #vcs compile

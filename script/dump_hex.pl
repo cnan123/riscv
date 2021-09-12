@@ -38,6 +38,8 @@ my @outdata;
 open(MYFILE, $filename) || die ("could not open file0");
 open(OUTFILE, ">", $outfile) || die ("could not open file0");
 
+my $high_base = 0;
+
 while(<MYFILE>){
     chmod $_;
     if( /:([0-9|a-f|A-F]{2})([0-9|a-f|A-F]{4})([0-9|a-f|A-F]{2})([0-9|a-f|A-F]+)([0-9|a-f|A-F]{2})/ ){
@@ -45,11 +47,12 @@ while(<MYFILE>){
         $low_address = $2;
         $type = $3;
         if($type eq '04'){ 
-            $high_base = $4;
+            $high_base = (hex($4) << 16 );
+
             print "extend base address: $high_base\n";
         } elsif( $type eq '00'){
             $data = $4;
-            my $start = hex($high_base.$low_address);
+            my $start = $high_base + hex($low_address);
             my $offset = hex($byte_length);
             for($i=0; $i<$offset; $i=$i+1){
                 if( ( ($start+$i) >=$base) & ( ($start+$i) <$end_address) ){ 
@@ -62,7 +65,7 @@ while(<MYFILE>){
             print "file end\n";
         } elsif( $type eq '02'){
             print "extend section address\n";
-             $high_base = $4;
+             $high_base = hex($4) << 4;
         } elsif( $type eq '03'){
             print "start section address\n";
         } elsif( $type eq '05'){  
