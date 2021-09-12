@@ -68,6 +68,8 @@ if( ! defined($coremark) ){
     $coremark_path = "$proj_path/c_sim/benchmarks/coremark";
     chdir($coremark_path) or die "can't cd' $coremark_path , $!";;
     system("make -f $coremark_path/Makefile");
+    chdir($dir) or die "can't cd' $dir , $!";;
+    
     `cp $coremark_path/coremark.elf .`;
     `$objcopy_tool -O ihex coremark.elf coremark.hex`;
 	`$objdump_tool --disassemble-all coremark.elf > coremark.dump`;
@@ -76,7 +78,7 @@ if( ! defined($coremark) ){
 if( ! (-e "$case.hex") ){ die "$case.hex not exist"; }
 
 system("dump_hex.pl -base 0x0 -length 0x10000 -i $case.hex -o program_instr.dat");
-system("dump_hex.pl -base 0x10000 -length 0x20000 -i $case.hex -o program_data.dat");
+system("dump_hex.pl -base 0x10000 -length 0x10000 -i $case.hex -o program_data.dat");
 
 #================================================================
 #vcs compile

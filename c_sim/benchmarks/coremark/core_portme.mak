@@ -4,7 +4,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-RV_ISA = rv32imc
+RV_ISA = rv32im
 
 OUTFILES = $(OPATH)coremark.dis $(OPATH)coremark.map $(OPATH)coremark.vmem
 
@@ -44,10 +44,10 @@ CFLAGS += $(PORT_CFLAGS) $(XCFLAGS) -I$(SIMPLE_SYSTEM_COMMON) -I$(PORT_DIR) -I.
 #SEPARATE_COMPILE=1
 # Flag : SEPARATE_COMPILE
 # You must also define below how to create an object file, and how to link.
-OBJOUT 	= -o
+OBJOUT 	= -o3
 LFLAGS 	=
 ASFLAGS =
-OFLAG 	= -o
+OFLAG 	= -o3
 COUT   	= -c
 
 LFLAGS_END = -T $(LINKER_SCRIPT) -Xlinker -Map=$(OPATH)coremark.map -lm -lgcc

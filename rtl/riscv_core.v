@@ -103,8 +103,8 @@ logic			is_sret;		// From id_stage of id_stage.v
 logic			is_uret;		// From id_stage of id_stage.v
 logic			is_wfi;			// From id_stage of id_stage.v
 logic			jump_ex;		// From id_stage of id_stage.v
-logic			jump_taken;		// From ex_stage of ex_stage.v
-logic [31:0]		jump_target_addr;	// From ex_stage of ex_stage.v
+logic			jump_taken;		// From id_stage of id_stage.v
+logic [31:0]		jump_target_addr;	// From id_stage of id_stage.v
 logic [31:0]		lsu_addr_mem;		// From ex_stage of ex_stage.v
 logic			lsu_en_ex;		// From id_stage of id_stage.v
 logic			lsu_en_mem;		// From ex_stage of ex_stage.v
@@ -231,6 +231,8 @@ id_stage id_stage(
 		  .lsu_dtype_ex		(lsu_dtype_ex),
 		  // Outputs
 		  .ready_id		(ready_id),
+		  .jump_taken		(jump_taken),
+		  .jump_target_addr	(jump_target_addr[31:0]),
 		  .jump_ex		(jump_ex),
 		  .branch_ex		(branch_ex),
 		  .alu_en_ex		(alu_en_ex),
@@ -295,6 +297,8 @@ id_stage id_stage(
     .extern_intr	(extern_irq_taken),
 	.timer_intr		(timer_irq_taken),
 	.software_intr	(soft_irq_taken),
+    .jump_taken (),
+    .jump_target_addr(),
 
 );*/
 ex_stage #( /*AUTOINSTPARAM*/
@@ -314,8 +318,8 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  // Outputs
 								  .ready_ex		(ready_ex),
 								  .pc_mem		(pc_mem[31:0]),
-								  .jump_target_addr	(jump_target_addr[31:0]),
-								  .jump_taken		(jump_taken),
+								  .jump_target_addr	(),		 // Templated
+								  .jump_taken		(),		 // Templated
 								  .branch_target_addr	(branch_target_addr[31:0]),
 								  .branch_taken		(branch_taken),
 								  .lsu_en_mem		(lsu_en_mem),
@@ -479,8 +483,8 @@ controller controller(/*AUTOINST*/
 		      .clk		(clk),
 		      .reset_n		(reset_n),
 		      .jump_taken	(jump_taken),
-		      .branch_taken	(branch_taken),
 		      .jump_target_addr	(jump_target_addr[31:0]),
+		      .branch_taken	(branch_taken),
 		      .branch_target_addr(branch_target_addr[31:0]),
 		      .pc_if		(pc_if[31:0]),
 		      .pc_id		(pc_id[31:0]),

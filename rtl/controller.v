@@ -14,9 +14,10 @@ module controller(
     input                       reset_n,
 
     input                       jump_taken,
-    input                       branch_taken,
     input [31:0]                jump_target_addr,
+    input                       branch_taken,
     input [31:0]                branch_target_addr,
+
     input [31:0]                pc_if,
     input [31:0]                pc_id,
     input [31:0]                pc_ex,
@@ -246,7 +247,7 @@ assign branch_jump = branch_taken | jump_taken;
 assign set_pc_valid = branch_taken | jump_taken | exc_fetch;
 assign set_pc[31:0] = (
     ( {32{branch_taken}}    & branch_target_addr[31:0]  ) |
-    ( {32{jump_taken}}      & jump_target_addr[31:0]    ) |
+    ( {32{jump_taken & (~branch_taken)}}      & jump_target_addr[31:0]    ) |
     ( {32{exc_fetch}}       & exc_fetch_pc[31:0]        ) 
 );
 
@@ -255,8 +256,8 @@ assign set_pc[31:0] = (
 //mode switch need another cycle to switch context
 //////////////////////////////////////////////////////
 
-assign flush_F  = (fsm_control_cs==EXC_FLUSH) | branch_jump;
-assign flush_D  = (fsm_control_cs==EXC_FLUSH) | branch_jump ;
+assign flush_F  = (fsm_control_cs==EXC_FLUSH) | branch_taken | jump_taken;
+assign flush_D  = (fsm_control_cs==EXC_FLUSH) | branch_taken ;
 assign flush_E  = (fsm_control_cs==EXC_FLUSH);
 assign flush_M  = (fsm_control_cs==EXC_FLUSH);
 assign flush_W  = (fsm_control_cs==EXC_FLUSH);

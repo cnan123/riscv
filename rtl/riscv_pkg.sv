@@ -83,6 +83,17 @@ parameter BRANCH_BGE        = 6'b00_1000;
 parameter BRANCH_BLTU       = 6'b01_0000;
 parameter BRANCH_BGEU       = 6'b10_0000;
 
+typedef enum logic [0:0] {
+    ADDER_A_REG_RS3,
+    ADDER_A_PC_ID
+} adder_a_mux_e;
+
+typedef enum logic [0:0] {
+    ADDER_B_IMM_ITYPE,
+    ADDER_B_IMM_JTYPE
+} adder_b_mux_e;
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 //alu
 /////////////////////////////////////////////////////////////////////////////////////////////

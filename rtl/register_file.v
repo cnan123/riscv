@@ -38,6 +38,12 @@ module register_file#(
         output                      rd_ch1_dirty,
         output [TAG_WIDTH-1:0]      rd_ch1_tag,
 
+        input                       rd_ch2_en,
+        input [4:0]                 rd_ch2_addr,
+        output [31:0]               rd_ch2_data,
+        output                      rd_ch2_dirty,
+        output [TAG_WIDTH-1:0]      rd_ch2_tag,
+
         input                       wr_ch0_en,
         input [4:0]                 wr_ch0_addr,
         input [TAG_WIDTH-1:0]       wr_ch0_tag,
@@ -121,5 +127,10 @@ assign rd_ch0_tag[TAG_WIDTH-1:0]    = tag[rd_ch0_addr[4:0]];
 assign rd_ch1_data[31:0]            = {32{rd_ch1_en}} & MEM[rd_ch1_addr[4:0]];
 assign rd_ch1_dirty                 = rd_ch1_en & dirty_en[rd_ch1_addr[4:0]];
 assign rd_ch1_tag[TAG_WIDTH-1:0]    = tag[rd_ch1_addr[4:0]];
+
+assign rd_ch2_data[31:0]            = {32{rd_ch2_en}} & MEM[rd_ch2_addr[4:0]];
+assign rd_ch2_dirty                 = rd_ch2_en & dirty_en[rd_ch2_addr[4:0]];
+assign rd_ch2_tag[TAG_WIDTH-1:0]    = tag[rd_ch2_addr[4:0]];
+
 
 endmodule

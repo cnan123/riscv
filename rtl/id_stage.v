@@ -55,6 +55,9 @@ module id_stage(
     input                       clr_dirty_wb_en,
     input [4:0]                 clr_dirty_wb_addr,
 
+    output logic                jump_taken,
+    output logic [31:0]         jump_target_addr,
+
     output logic                jump_ex,
     output logic                branch_ex,
     //alu
@@ -121,6 +124,12 @@ logic [4:0]             rs2_rd_addr;
 logic [31:0]            rs2_rd_data;
 logic                   rs2_rd_value;
 
+logic                   rs3_rd_en;
+logic [4:0]             rs3_rd_addr;
+logic [31:0]            rs3_rd_data;
+logic                   rs3_rd_value;
+
+
 logic                   rd_rf1_en;
 logic [TAG_WIDTH-1:0]   rd_rf1_tag;
 logic [4:0]             rd_rf1_addr;
@@ -132,6 +141,12 @@ logic [TAG_WIDTH-1:0]   rd_rf2_tag;
 logic [4:0]             rd_rf2_addr;
 logic [31:0]            rd_rf2_data;
 logic                   rd_rf2_dirty;
+
+logic                   rd_rf3_en;
+logic [TAG_WIDTH-1:0]   rd_rf3_tag;
+logic [4:0]             rd_rf3_addr;
+logic [31:0]            rd_rf3_data;
+logic                   rd_rf3_dirty;
 
 logic                   alu_en_id;
 alu_op_e                alu_op_id;
@@ -175,6 +190,12 @@ logic [5:0]             exc_casue_id;
 logic                   read_rf_busy;
 logic                   exc_taken_id;
 logic                   valid_id;
+
+adder_a_mux_e           adder_a_mux;
+adder_b_mux_e           adder_b_mux;
+logic [31:0]            adder_a;
+logic [31:0]            adder_b;
+logic [31:0]            adder_result_id;
 
 //////////////////////////////////////////////
 //main code
@@ -227,6 +248,11 @@ decoder decoder( /*AUTOINST*/
 		.rs1_rd_addr		(rs1_rd_addr[4:0]),
 		.rs2_rd_en		    (rs2_rd_en),
 		.rs2_rd_addr		(rs2_rd_addr[4:0]),
+		.rs3_rd_en		    (rs3_rd_en),
+		.rs3_rd_addr		(rs3_rd_addr[4:0]),
+
+        .adder_a_mux        (adder_a_mux),
+        .adder_b_mux        (adder_b_mux),
 
 		.alu_en			    (alu_en_id),
 		.alu_op			    (alu_op_id),
@@ -282,6 +308,11 @@ score_board #(
         .rs2_rd_data		(rs2_rd_data[31:0]),
         .rs2_rd_value		(rs2_rd_value),
 
+        .rs3_rd_en		    (rs3_rd_en),
+        .rs3_rd_addr		(rs3_rd_addr[4:0]),
+        .rs3_rd_data		(rs3_rd_data[31:0]),
+        .rs3_rd_value		(rs3_rd_value),
+
         .rd_rf1_en		    (rd_rf1_en),
         .rd_rf1_addr		(rd_rf1_addr[4:0]),
         .rd_rf1_tag		    (rd_rf1_tag[TAG_WIDTH-1:0]),
@@ -293,6 +324,12 @@ score_board #(
         .rd_rf2_tag		    (rd_rf2_tag[TAG_WIDTH-1:0]),
         .rd_rf2_data		(rd_rf2_data[31:0]),
         .rd_rf2_dirty		(rd_rf2_dirty),
+
+        .rd_rf3_en		    (rd_rf3_en),
+        .rd_rf3_addr		(rd_rf3_addr[4:0]),
+        .rd_rf3_tag		    (rd_rf3_tag[TAG_WIDTH-1:0]),
+        .rd_rf3_data		(rd_rf3_data[31:0]),
+        .rd_rf3_dirty		(rd_rf3_dirty),
 
         .forward_ex_en		(forward_ex_en),
         .forward_ex_tag	    (forward_ex_tag[TAG_WIDTH-1:0]),
@@ -337,6 +374,12 @@ register_file #(
 		 .rd_ch1_dirty		(rd_rf2_dirty),
          .rd_ch1_tag        (rd_rf2_tag[TAG_WIDTH-1:0]),
 
+         .rd_ch2_en		    (rd_rf3_en),
+		 .rd_ch2_addr		(rd_rf3_addr[4:0]),
+		 .rd_ch2_data		(rd_rf3_data[31:0]),
+		 .rd_ch2_dirty		(rd_rf3_dirty),
+         .rd_ch2_tag        (rd_rf3_tag[TAG_WIDTH-1:0]),
+
 		 .invalid_en		(rd_wr_en_id & ready_id & (~flush_D)),
 		 .invalid_addr		(rd_wr_addr_id[4:0]),
          .new_tag           (rd_wr_tag_id[TAG_WIDTH-1:0]),
@@ -346,6 +389,32 @@ register_file #(
          .wr_ch0_tag        (rf_wr_wb_tag[TAG_WIDTH-1:0]),
 		 .wr_ch0_data		(rf_wr_wb_data[31:0])
 );
+
+//////////////////////////////////////////////
+//jump target
+//////////////////////////////////////////////
+always_comb begin
+    adder_a = 32'h0;
+    unique case( adder_a_mux )
+        ADDER_A_REG_RS3: adder_a = rs3_rd_data;
+        ADDER_A_PC_ID: adder_a = pc_id;
+        default:;
+    endcase
+end
+
+always_comb begin
+    adder_b = 32'h0;
+    unique case( adder_b_mux )
+        ADDER_B_IMM_ITYPE: adder_b = imm_itype;
+        ADDER_B_IMM_JTYPE: adder_b = imm_jtype;
+        default:;
+    endcase
+end
+
+assign adder_result_id = adder_a + adder_b;
+
+assign jump_target_addr = adder_result_id;
+assign jump_taken = jump_id & ready_id;
 
 
 //////////////////////////////////////////////
@@ -365,7 +434,11 @@ assign stall_id = read_rf_busy | stall_D;
 assign ready_id = (~stall_id) & ready_ex & (~exc_taken_id);
 assign valid_id = (~stall_id) & ready_ex & instr_value;
 
-assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_value));
+assign read_rf_busy = (
+    (rs1_rd_en & (~rs1_rd_value)) |
+    (rs2_rd_en & (~rs2_rd_value)) |
+    (rs3_rd_en & (~rs3_rd_value)) 
+);
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin

@@ -23,8 +23,15 @@ module decoder(/*AUTOARG*/
     output logic          rs2_rd_en,
     output logic  [4:0]   rs2_rd_addr,
 
+    output logic          rs3_rd_en,
+    output logic  [4:0]   rs3_rd_addr,
+
     output logic          rd_wr_en,
     output logic  [4:0]   rd_wr_addr,
+
+    //jump
+    output adder_a_mux_e    adder_a_mux,
+    output adder_b_mux_e    adder_b_mux,
 
     //src 
     output src_a_mux_e      src_a_mux,
@@ -303,9 +310,16 @@ always @(*)begin
 
     rs1_rd_en   = 1'b0;
     rs2_rd_en   = 1'b0;
+    rs3_rd_en   = 1'b0;
+
+    rs3_rd_addr = 5'h0;
+
     src_a_mux   = SRC_A_REG_RS1;
     src_b_mux   = SRC_B_REG_RS2;
     src_c_mux   = SRC_C_IMM_BTYPE;
+
+    adder_a_mux = ADDER_A_PC_ID;
+    adder_b_mux = ADDER_B_IMM_JTYPE;
 
     rd_wr_en        = 1'b0;
     illegal_instr   = 1'b0;
@@ -340,10 +354,10 @@ always @(*)begin
             jalr_instr      :begin 
                 if( funct3[2:0] == 3'b0 )begin
                     alu_en = 1'b1;
-                    alu_op = ALU_ADD;
-                    rs1_rd_en = 1'b1;
-                    src_a_mux = SRC_A_REG_RS1;
-                    src_b_mux = SRC_B_IMM_ITYPE;
+                    rs3_rd_en = 1'b1; //no forward
+                    rs3_rd_addr = rs1;
+                    adder_a_mux = ADDER_A_REG_RS3;
+                    adder_b_mux = ADDER_B_IMM_ITYPE;
                     jump = 1'b1;
                     rd_wr_en  = 1'b1;
                 end else begin
@@ -352,9 +366,8 @@ always @(*)begin
             end
             jal_instr       :begin 
                 alu_en = 1'b1;
-                alu_op = ALU_ADD;
-                src_a_mux = SRC_A_PC_ID;
-                src_b_mux = SRC_B_IMM_JTYPE;
+                adder_a_mux = ADDER_A_PC_ID;
+                adder_b_mux = ADDER_B_IMM_JTYPE;
                 jump = 1'b1;
                 rd_wr_en = 1'b1;
             end
