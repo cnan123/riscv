@@ -18,6 +18,13 @@ The puspose of this project is to implement a basic 5-stage pipeline of riscv cp
 + wfi
 + misalign access
 
+
+Performance | CoreMark |
+- | - |
+jump taken EX | 2.78 |
+jump taken ID | 2.87 |
+
+
 ## Tool Requirements
 
 * vcs
@@ -43,9 +50,18 @@ $ cd work
 $ run_sim.pl -module case -case hello_test
 $ verdi -sv -f sim.lst -ssf verilog.fsdb
 ```
+* Run Coremark
+```
+$ source setenv
+$ cd sim
+$ cd work
+$ run_sim.pl -coremark
+```
+
 
 ## Version Log
 
++ run coremark test
 + support compress instr
 + support divider
 + support multiple
