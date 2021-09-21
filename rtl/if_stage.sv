@@ -30,8 +30,16 @@ module if_stage#(
     output logic [31:0]     pc_id,
     output logic [31:0]     instr_payload_id,
     output logic            instr_value_id,
+    output logic            compress_instr_id,
+    output logic            branch_prediction_id,
     output logic            instr_fetch_error,
-    output logic            is_compress_intr,
+
+    //branch prediction
+    input                   prediction_fail,
+    input                   btb_invalid,
+    input                   btb_update,
+    input [31:0]            branch_pc,
+    input [31:0]            branch_target,
     
     //instruction interface
     output logic            instr_req,
@@ -50,12 +58,16 @@ module if_stage#(
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
 // Beginning of automatic wires (for undeclared instantiated-module outputs)
+logic			btb_hit;		// From btb of btb.v
 logic			illegal_instr_o;	// From compress_decoder of compress_decoder.v
 logic [31:0]		instruction_if;		// From compress_decoder of compress_decoder.v
+logic [31:1]		target_pc_r;		// From btb of btb.v
 // End of automatics
 //////////////////////////////////////////////
 logic [31:0]    instruction;
 logic           instruction_value;
+
+logic           is_compress_intr;
 
 logic [31:0]    next_pc;
 logic           is_boot;
@@ -94,10 +106,10 @@ logic           fifo_empty;
 
 logic           ready_if;
 
-parameter IDLE      = 2'd0;
-parameter WAIT_GNT  = 2'd1;
-parameter WAIT_DATA = 2'd2;
-parameter FLUSH     = 2'd3;
+logic [31:1]    pc_r;
+logic           btb_rd;
+logic [1:0]     fsm_prediction_ns;
+logic [1:0]     fsm_prediction_cs;
 
 //////////////////////////////////////////////
 //main code
@@ -107,7 +119,7 @@ always @(*)begin
     if(set_pc_valid)begin
         next_pc = set_pc;
     end else if(branch_prediction_taken)begin
-        next_pc = branch_prediction_pc;
+        next_pc = branch_prediction_pc;        
     end else if( instruction_value & is_compress_intr )begin
         next_pc = pc_if + 2;
     end else if(instruction_value )begin
@@ -120,7 +132,7 @@ end
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         is_boot <= 1'b0;
-    end else if( ready_if | set_pc ) begin
+    end else begin
         is_boot <= 1'b1;
     end
 end
@@ -128,7 +140,7 @@ end
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         pc_if <= boot_addr;
-    end else if( ready_if | set_pc )begin
+    end else if( ready_if | set_pc_valid )begin
         pc_if <= next_pc;
     end
 end
@@ -162,17 +174,23 @@ assign ready_if = ready_id & (~stall_F);
 
 always @(posedge clk or negedge reset_n)begin
     if( !reset_n )begin
-        instr_payload_id    <= 32'h0;
-        instr_value_id      <= 1'b0;
-        instr_fetch_error   <= 1'b0;
+        instr_payload_id        <= 32'h0;
+        instr_value_id          <= 1'b0;
+        compress_instr_id       <= 1'b0;
+        instr_fetch_error       <= 1'b0;
+        branch_prediction_id    <= 1'b0;
     end else if( flush_F )begin
-        instr_payload_id    <= 32'h0;
-        instr_value_id      <= 1'b0;
-        instr_fetch_error   <= 1'b0;
+        instr_payload_id        <= 32'h0;
+        instr_value_id          <= 1'b0;
+        compress_instr_id       <= 1'b0;
+        instr_fetch_error       <= 1'b0;
+        branch_prediction_id    <= 1'b0;
     end else if(ready_if) begin
-        instr_payload_id    <= instruction_if;
-        instr_value_id      <= instruction_value;
-        instr_fetch_error   <= instruction_err;
+        instr_payload_id        <= instruction_if;
+        instr_value_id          <= instruction_value;
+        compress_instr_id       <= is_compress_intr;
+        instr_fetch_error       <= instruction_err;
+        branch_prediction_id    <= branch_prediction_taken;
     end
 end
 
@@ -200,7 +218,7 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
-assign fetch_en = is_boot && (set_pc_valid | branch_prediction_taken | ready_if);
+assign fetch_en = is_boot && (set_pc_valid | ready_if);
 
 assign hold_data_is_compress = (hold_rdata[1:0]!=2'b11) & hold_rdata_value & pc_unalign;
 assign fifo_pop = fetch_en && (~fifo_empty) && (~hold_data_is_compress);
@@ -264,6 +282,10 @@ sync_fifo #(
 /////////////////////////////////////////////////
 //fetch from program memroy
 /////////////////////////////////////////////////
+localparam IDLE      = 2'd0;
+localparam WAIT_GNT  = 2'd1;
+localparam WAIT_DATA = 2'd2;
+localparam FLUSH     = 2'd3;
 
 assign set_instr_addr = (
         ( {32{set_pc_valid              }} & set_pc ) |
@@ -385,9 +407,78 @@ assign fifo_push_data = {instr_err, instr_rdata};
 /////////////////////////////////////////////////
 generate
 if(BRANCH_PREDICTION == 1)begin: gen_branch_prediction
-    //TODO
-    assign branch_prediction_taken = 1'b0;
-    assign branch_prediction_pc = 32'h0;
+localparam PREDICTION_IDLE = 2'b00;
+localparam PREDICTION_DATA = 2'b01;
+localparam PREDICTION_HOLD = 2'b10;
+
+assign btb_rd   = ( (ready_if & instruction_value) | set_pc_valid ) & (~prediction_fail);
+assign pc_r     = next_pc[31:1];
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        fsm_prediction_cs <= PREDICTION_IDLE;
+    end else begin
+        fsm_prediction_cs <= fsm_prediction_ns;
+    end
+end
+
+always @(*)begin
+    fsm_prediction_ns = fsm_prediction_cs;
+    case(fsm_prediction_cs)
+        PREDICTION_IDLE: begin
+            if(btb_rd)begin
+                fsm_prediction_ns = PREDICTION_DATA;
+            end
+        end
+        PREDICTION_DATA:begin
+            if( btb_hit )begin
+                if(instruction_value)begin
+                    fsm_prediction_ns = btb_rd ? PREDICTION_DATA : PREDICTION_IDLE;
+                end else begin
+                    fsm_prediction_ns = PREDICTION_HOLD;
+                end
+            end else begin
+                fsm_prediction_ns = btb_rd ? PREDICTION_DATA : PREDICTION_IDLE;
+            end
+        end
+        PREDICTION_HOLD:begin
+            if(instruction_value)begin
+                fsm_prediction_ns = btb_rd ? PREDICTION_DATA : PREDICTION_IDLE;
+            end
+        end
+        default:;
+    endcase
+end
+
+assign branch_prediction_taken = (~set_pc_valid) & instruction_value & (
+    ( (fsm_prediction_cs==PREDICTION_DATA) & btb_hit ) | 
+    ( fsm_prediction_cs == PREDICTION_HOLD )
+);
+
+assign branch_prediction_pc = { target_pc_r, 1'b0 };
+
+/*
+btb AUTO_TEMPLATE(
+    .btb_wr (btb_update),
+    .btb_invalid    (btb_invalid),
+    .pc_w   (branch_pc[]),
+    .target_pc_w    (branch_target[]),
+);
+*/
+btb btb(/*AUTOINST*/
+	// Outputs
+	.btb_hit			(btb_hit),
+	.target_pc_r			(target_pc_r[31:1]),
+	// Inputs
+	.clk				(clk),
+	.reset_n			(reset_n),
+	.btb_rd				(btb_rd),
+	.pc_r				(pc_r[31:1]),
+	.btb_wr				(btb_update),		 // Templated
+	.btb_invalid			(btb_invalid),		 // Templated
+	.pc_w				(branch_pc[31:1]),	 // Templated
+	.target_pc_w			(branch_target[31:0]));	 // Templated
+
 end else begin: gen_no_branch_prediction
     assign branch_prediction_taken = 1'b0;
     assign branch_prediction_pc = 32'h0;

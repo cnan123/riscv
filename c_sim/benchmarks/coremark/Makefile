@@ -8,7 +8,7 @@ CURDIR = /home/cnan/tree/eagle_tree/study/riscv/riscv/c_sim/benchmarks/coremark
 COREMARK_DIR = $(CURDIR)/coremark
 
 export PORT_DIR  = $(CURDIR)
-export ITERATIONS = 1
+export ITERATIONS = 20
 export OPATH = $(CURDIR)/
 
 # Export OPATH above doesn't seem to work so need to explicitly give it on the

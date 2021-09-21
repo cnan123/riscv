@@ -19,11 +19,21 @@ The puspose of this project is to implement a basic 5-stage pipeline of riscv cp
 + misalign access
 
 
-Performance | CoreMark |
-- | - |
-jump taken EX | 2.78 |
-jump taken ID | 2.87 |
+## Performance
 
+| Performance | CoreMark |
+| - | - |
+| jump taken EX | 2.84 |
+| jump taken ID | 2.87 |
+
+
++ BTB
+
+| Entry | Way | Coremark |
+| - | - | - |
+| 2048 | 4 | 3.02 |
+| 2048 | 1 | 3.03 |
+| 512 |  1 | 3.03 |
 
 ## Tool Requirements
 
@@ -72,3 +82,5 @@ $ run_sim.pl -coremark
 
 
 
+
+***

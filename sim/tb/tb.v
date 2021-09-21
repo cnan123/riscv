@@ -63,14 +63,16 @@ end
 always #1 clk<=~clk;
 
 initial begin
-    $fsdbDumpfile("verilog.fsdb");
-    $fsdbDumpvars("+all");
-    $fsdbDumpvars("+struct");
-    $fsdbDumpvars("+mda");
-    $fsdbDumpvars("+packedmda");
-    $fsdbDumpvars("+parameter");
+    `ifdef FSDB
+        $fsdbDumpfile("verilog.fsdb");
+        $fsdbDumpvars("+all");
+        $fsdbDumpvars("+struct");
+        $fsdbDumpvars("+mda");
+        $fsdbDumpvars("+packedmda");
+        $fsdbDumpvars("+parameter");
 
-    $fsdbDumpMDA();
+        $fsdbDumpMDA();
+    `endif
 end
 
 `define PATH_IRAM_MEM tb.tb_memory.iram

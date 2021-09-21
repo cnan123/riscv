@@ -34,6 +34,15 @@ module ex_stage#(
     output logic [31:0]         branch_target_addr,
     output logic                branch_taken,
 
+    //update btb
+    input                       compress_instr_ex,
+    input                       branch_prediction_ex,
+    output logic                prediction_fail,
+    output logic                btb_invalid,
+    output logic                btb_update,
+    output logic [31:0]         branch_pc,
+    output logic [31:0]         branch_target,
+             
     //alu
     input logic                 alu_en_ex,
     input alu_op_e              alu_op_ex,
@@ -141,6 +150,9 @@ logic           load;
 logic           store;
 
 logic           exc_ex;
+
+logic           compare_taken;
+
 //////////////////////////////////////////////
 //main code
 
@@ -271,8 +283,20 @@ div divider(/*AUTOINST*/
 //////////////////////////////////////////////
 //branch
 //////////////////////////////////////////////
-assign branch_taken = branch_compare_result & alu_en_ex;
-assign branch_target_addr = pc_ex + src_c_ex;
+assign compare_taken = branch_compare_result & alu_en_ex;
+
+assign branch_taken         = prediction_fail;
+assign branch_target_addr   = btb_invalid ? (pc_ex + (32'h2 << (~compress_instr_ex) )) : (pc_ex + src_c_ex);
+
+assign prediction_fail = branch_ex & ( 
+    ( branch_prediction_ex & (~compare_taken) ) | 
+    (~branch_prediction_ex & compare_taken) 
+);
+
+assign btb_update       = prediction_fail;
+assign btb_invalid      = (branch_prediction_ex & (~compare_taken));
+assign branch_pc        = pc_ex;
+assign branch_target    = pc_ex + src_c_ex;
 
 //////////////////////////////////////////////
 //jump
@@ -284,7 +308,7 @@ assign jump_target_addr = adder_result;
 //control
 //////////////////////////////////////////////
 
-assign ready_ex = (~stall_E) & ready_mem & ready_div & (~exc_ex)  ;
+assign ready_ex = (~stall_E) & ready_mem & ready_div & (~exc_ex);
 assign valid_ex = (~stall_E) & ready_mem & ready_div;
 
 assign return_addr  = pc_id; //next instr

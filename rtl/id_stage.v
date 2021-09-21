@@ -19,6 +19,8 @@ module id_stage(
     input [31:0]                pc_id,
     input [31:0]                instr_payload,
     input                       instr_value,
+    input                       branch_prediction_id,
+    input                       compress_instr_id,
     input                       instr_fetch_error, //PMP or Bus error respone. TODO
 
     //pipeline control
@@ -55,8 +57,10 @@ module id_stage(
     input                       clr_dirty_wb_en,
     input [4:0]                 clr_dirty_wb_addr,
 
+    output logic                compress_instr_ex,
     output logic                jump_ex,
     output logic                branch_ex,
+    output logic                branch_prediction_ex,
     //alu
     output logic                alu_en_ex,
     output alu_op_e             alu_op_ex,
@@ -369,63 +373,68 @@ assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_valu
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
-        alu_en_ex       <= 1'b0;
-        alu_op_ex       <= ALU_NONE;
+        alu_en_ex               <= 1'b0;
+        alu_op_ex               <= ALU_NONE;
 
-        lsu_en_ex       <= 1'b0;
-        lsu_op_ex       <= LSU_OP_LD;
-        lsu_dtype_ex    <= LSU_DTYPE_U_BYTE;
+        lsu_en_ex               <= 1'b0;
+        lsu_op_ex               <= LSU_OP_LD;
+        lsu_dtype_ex            <= LSU_DTYPE_U_BYTE;
         
-        mult_en_ex      <= 1'b0;
-        mult_op_ex      <= MUL;
+        mult_en_ex              <= 1'b0;
+        mult_op_ex              <= MUL;
 
-        csr_en_ex       <= 1'b0;
-        csr_op_ex       <= CSR_OP_READ;
+        csr_en_ex               <= 1'b0;
+        csr_op_ex               <= CSR_OP_READ;
 
-        src_a_ex        <= 32'h0;
-        src_b_ex        <= 32'h0;
-        src_c_ex        <= 32'h0;
+        src_a_ex                <= 32'h0;
+        src_b_ex                <= 32'h0;
+        src_c_ex                <= 32'h0;
 
-        branch_ex       <= 1'b0;
-        jump_ex         <= 1'b0;
+        compress_instr_ex       <= 1'b0;
+        branch_prediction_ex    <= 1'b0;
+        branch_ex               <= 1'b0;
+        jump_ex                 <= 1'b0;
 
-        rd_wr_en_ex     <= 1'b0;
-        rd_wr_tag_ex    <= {TAG_WIDTH{1'b0}};
-        rd_wr_addr_ex   <= 5'h0;
+        rd_wr_en_ex             <= 1'b0;
+        rd_wr_tag_ex            <= {TAG_WIDTH{1'b0}};
+        rd_wr_addr_ex           <= 5'h0;
     end else if( (flush_D & ready_id) | ((~ready_id) & ready_ex) )begin
     //flush pipeline: program flow was broken such as jump/branch/interrupt/exception
-        alu_en_ex       <= 1'b0;
-        lsu_en_ex       <= 1'b0;
-        mult_en_ex      <= 1'b0;
-        csr_en_ex       <= 1'b0;
-        branch_ex       <= 1'b0;
-        jump_ex         <= 1'b0;
-        rd_wr_en_ex     <= 1'b0;
+        alu_en_ex               <= 1'b0;
+        lsu_en_ex               <= 1'b0;
+        mult_en_ex              <= 1'b0;
+        csr_en_ex               <= 1'b0;
+        branch_ex               <= 1'b0;
+        jump_ex                 <= 1'b0;
+        rd_wr_en_ex             <= 1'b0;
+        branch_prediction_ex    <= 1'b0;
     end else if( ready_id )begin
     //flow pipeline :ID stage is ready
-        alu_en_ex       <= alu_en_id;
-        alu_op_ex       <= alu_op_id;
+        alu_en_ex               <= alu_en_id;
+        alu_op_ex               <= alu_op_id;
 
-        lsu_en_ex       <= lsu_en_id;
-        lsu_op_ex       <= lsu_op_id;
-        lsu_dtype_ex    <= lsu_dtype_id;
+        lsu_en_ex               <= lsu_en_id;
+        lsu_op_ex               <= lsu_op_id;
+        lsu_dtype_ex            <= lsu_dtype_id;
 
-        mult_en_ex      <= mult_en_id;
-        mult_op_ex      <= mult_op_id;
+        mult_en_ex              <= mult_en_id;
+        mult_op_ex              <= mult_op_id;
         
-        csr_en_ex       <= csr_en_id;
-        csr_op_ex       <= csr_op_id;
+        csr_en_ex               <= csr_en_id;
+        csr_op_ex               <= csr_op_id;
 
-        src_a_ex        <= src_a_id;
-        src_b_ex        <= src_b_id;
-        src_c_ex        <= src_c_id;
+        src_a_ex                <= src_a_id;
+        src_b_ex                <= src_b_id;
+        src_c_ex                <= src_c_id;
 
-        branch_ex       <= branch_id;
-        jump_ex         <= jump_id;
+        compress_instr_ex       <= compress_instr_id;
+        branch_ex               <= branch_id;
+        branch_prediction_ex    <= branch_prediction_id;
+        jump_ex                 <= jump_id;
 
-        rd_wr_en_ex     <= rd_wr_en_id;
-        rd_wr_tag_ex    <= rd_wr_tag_id;
-        rd_wr_addr_ex   <= rd_wr_addr_id;
+        rd_wr_en_ex             <= rd_wr_en_id;
+        rd_wr_tag_ex            <= rd_wr_tag_id;
+        rd_wr_addr_ex           <= rd_wr_addr_id;
     end
 end
 
