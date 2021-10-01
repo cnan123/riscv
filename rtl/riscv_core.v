@@ -52,11 +52,9 @@ import riscv_pkg::*;
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
 // Beginning of automatic wires (for undeclared instantiated-module outputs)
-logic			alu_en_ex;		// From id_stage of id_stage.v
+logic			adder_en_ex;		// From id_stage of id_stage.v
 logic			branch_ex;		// From id_stage of id_stage.v
 logic [31:0]		branch_pc;		// From ex_stage of ex_stage.v
-logic			branch_prediction_ex;	// From id_stage of id_stage.v
-logic			branch_prediction_id;	// From if_stage of if_stage.v
 logic			branch_taken;		// From ex_stage of ex_stage.v
 logic [31:0]		branch_target;		// From ex_stage of ex_stage.v
 logic [31:0]		branch_target_addr;	// From ex_stage of ex_stage.v
@@ -68,6 +66,7 @@ logic [4:0]		clr_dirty_mem_addr;	// From mem_stage of mem_stage.v
 logic			clr_dirty_mem_en;	// From mem_stage of mem_stage.v
 logic [4:0]		clr_dirty_wb_addr;	// From wb_stage of wb_stage.v
 logic			clr_dirty_wb_en;	// From wb_stage of wb_stage.v
+logic			comp_en_ex;		// From id_stage of id_stage.v
 logic			compress_instr_ex;	// From id_stage of id_stage.v
 logic			compress_instr_id;	// From if_stage of if_stage.v
 logic [11:0]		csr_addr_ex;		// From id_stage of id_stage.v
@@ -113,6 +112,7 @@ logic			is_wfi;			// From id_stage of id_stage.v
 logic			jump_ex;		// From id_stage of id_stage.v
 logic			jump_taken;		// From ex_stage of ex_stage.v
 logic [31:0]		jump_target_addr;	// From ex_stage of ex_stage.v
+logic			logic_en_ex;		// From id_stage of id_stage.v
 logic [31:0]		lsu_addr_mem;		// From ex_stage of ex_stage.v
 logic			lsu_en_ex;		// From id_stage of id_stage.v
 logic			lsu_en_mem;		// From ex_stage of ex_stage.v
@@ -133,6 +133,9 @@ logic [31:0]		pc_id;			// From if_stage of if_stage.v
 logic [31:0]		pc_if;			// From if_stage of if_stage.v
 logic [31:0]		pc_mem;			// From ex_stage of ex_stage.v
 logic [31:0]		pc_wb;			// From mem_stage of mem_stage.v
+logic [31:0]		predict_pc_id;		// From if_stage of if_stage.v
+logic			predict_taken_ex;	// From id_stage of id_stage.v
+logic			predict_taken_id;	// From if_stage of if_stage.v
 logic			prediction_fail;	// From ex_stage of ex_stage.v
 logic [4:0]		rd_wr_addr_ex;		// From id_stage of id_stage.v
 logic [4:0]		rd_wr_addr_mem;		// From ex_stage of ex_stage.v
@@ -155,6 +158,8 @@ logic			rf_wr_en;		// From wb_stage of wb_stage.v
 logic [TAG_WIDTH-1:0]	rf_wr_tag;		// From wb_stage of wb_stage.v
 logic [31:0]		set_pc;			// From controller of controller.v
 logic			set_pc_valid;		// From controller of controller.v
+logic			shift_en_ex;		// From id_stage of id_stage.v
+logic			sign_ex;		// From id_stage of id_stage.v
 logic			soft_irq_taken;		// From plic of plic.v
 logic [31:0]		src_a_ex;		// From id_stage of id_stage.v
 logic [31:0]		src_b_ex;		// From id_stage of id_stage.v
@@ -171,7 +176,11 @@ logic			timer_irq_taken;	// From plic of plic.v
 //////////////////////////////////////////////
 //main code
 
-alu_op_e            alu_op_ex;
+adder_op_e          adder_op_ex;
+comp_op_e           comp_op_ex;
+logic_op_e          logic_op_ex;
+shift_op_e          shift_op_ex;
+
 lsu_op_e            lsu_op_ex;
 lsu_dtype_e         lsu_dtype_ex;
 lsu_op_e            lsu_op_mem;
@@ -209,7 +218,8 @@ if_stage #(
 								     .instr_payload_id	(instr_payload_id[31:0]),
 								     .instr_value_id	(instr_value_id),
 								     .compress_instr_id	(compress_instr_id),
-								     .branch_prediction_id(branch_prediction_id),
+								     .predict_taken_id	(predict_taken_id),
+								     .predict_pc_id	(predict_pc_id[31:0]),
 								     .instr_fetch_error	(instr_fetch_error),
 								     .instr_req		(instr_req),
 								     .instr_addr	(instr_addr[31:0]),
@@ -245,7 +255,10 @@ if_stage #(
 id_stage id_stage(
     /*AUTOINST*/
 		  // Interfaces
-		  .alu_op_ex		(alu_op_ex),
+		  .adder_op_ex		(adder_op_ex),
+		  .comp_op_ex		(comp_op_ex),
+		  .logic_op_ex		(logic_op_ex),
+		  .shift_op_ex		(shift_op_ex),
 		  .mult_op_ex		(mult_op_ex),
 		  .lsu_op_ex		(lsu_op_ex),
 		  .lsu_dtype_ex		(lsu_dtype_ex),
@@ -254,8 +267,12 @@ id_stage id_stage(
 		  .compress_instr_ex	(compress_instr_ex),
 		  .jump_ex		(jump_ex),
 		  .branch_ex		(branch_ex),
-		  .branch_prediction_ex	(branch_prediction_ex),
-		  .alu_en_ex		(alu_en_ex),
+		  .predict_taken_ex	(predict_taken_ex),
+		  .sign_ex		(sign_ex),
+		  .adder_en_ex		(adder_en_ex),
+		  .comp_en_ex		(comp_en_ex),
+		  .logic_en_ex		(logic_en_ex),
+		  .shift_en_ex		(shift_en_ex),
 		  .src_a_ex		(src_a_ex[31:0]),
 		  .src_b_ex		(src_b_ex[31:0]),
 		  .src_c_ex		(src_c_ex[31:0]),
@@ -286,7 +303,8 @@ id_stage id_stage(
 		  .pc_id		(pc_id[31:0]),
 		  .instr_payload	(instr_payload_id),	 // Templated
 		  .instr_value		(instr_value_id),	 // Templated
-		  .branch_prediction_id	(branch_prediction_id),
+		  .predict_taken_id	(predict_taken_id),
+		  .predict_pc_id	(predict_pc_id),
 		  .compress_instr_id	(compress_instr_id),
 		  .instr_fetch_error	(instr_fetch_error),
 		  .stall_D		(stall_D),
@@ -326,7 +344,10 @@ ex_stage #( /*AUTOINSTPARAM*/
 	   .ILLEGAL_CSR_EN		(ILLEGAL_CSR_EN))ex_stage( 
 /*AUTOINST*/
 								  // Interfaces
-								  .alu_op_ex		(alu_op_ex),
+								  .adder_op_ex		(adder_op_ex),
+								  .comp_op_ex		(comp_op_ex),
+								  .logic_op_ex		(logic_op_ex),
+								  .shift_op_ex		(shift_op_ex),
 								  .lsu_op_ex		(lsu_op_ex),
 								  .lsu_dtype_ex		(lsu_dtype_ex),
 								  .mult_op_ex		(mult_op_ex),
@@ -377,8 +398,12 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  .jump_ex		(jump_ex),
 								  .branch_ex		(branch_ex),
 								  .compress_instr_ex	(compress_instr_ex),
-								  .branch_prediction_ex	(branch_prediction_ex),
-								  .alu_en_ex		(alu_en_ex),
+								  .predict_taken_ex	(predict_taken_ex),
+								  .sign_ex		(sign_ex),
+								  .adder_en_ex		(adder_en_ex),
+								  .comp_en_ex		(comp_en_ex),
+								  .logic_en_ex		(logic_en_ex),
+								  .shift_en_ex		(shift_en_ex),
 								  .src_a_ex		(src_a_ex[31:0]),
 								  .src_b_ex		(src_b_ex[31:0]),
 								  .src_c_ex		(src_c_ex[31:0]),

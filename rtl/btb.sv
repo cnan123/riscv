@@ -32,7 +32,7 @@ module btb(
 /*AUTOLOGIC*/
 //////////////////////////////////////////////
 
-parameter TAG_DEPTH         = 256;
+parameter TAG_DEPTH         = 1024;
 parameter TAG_ADDR_WIDTH    = $clog2(TAG_DEPTH);
 
 parameter GROUP_WIDTH       = 1;

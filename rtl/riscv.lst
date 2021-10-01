@@ -9,6 +9,9 @@ ${PROJ_PATH}/rtl/sync_fifo.v
 ${PROJ_PATH}/rtl/decoder.sv
 ${PROJ_PATH}/rtl/score_board.sv
 ${PROJ_PATH}/rtl/id_stage.v
+${PROJ_PATH}/rtl/rv_adder.sv
+${PROJ_PATH}/rtl/rv_compare.sv
+${PROJ_PATH}/rtl/rv_shift.sv
 ${PROJ_PATH}/rtl/alu.sv
 ${PROJ_PATH}/rtl/csr.sv
 ${PROJ_PATH}/rtl/multiplier.sv

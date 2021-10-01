@@ -86,37 +86,29 @@ parameter BRANCH_BGEU       = 6'b10_0000;
 //////////////////////////////////////////////////////////////////////////////////////////////
 //alu
 /////////////////////////////////////////////////////////////////////////////////////////////
-parameter ALU_OP_WIDTH      = 6;
+typedef enum logic [0:0] {
+    ALU_ADD,
+    ALU_SUB
+} adder_op_e;
 
-typedef enum logic [ALU_OP_WIDTH-1:0] {
-    ALU_NONE          = 6'b00_0000,
-    // adder
-    ALU_ADD           = 6'b00_0001,
-    ALU_SUB           = 6'b00_0010,
-    
-    //logic
-    ALU_XOR           = 6'b00_1000,
-    ALU_OR            = 6'b00_1001,
-    ALU_AND           = 6'b00_1010,
-    
-    //shift
-    ALU_SLL           = 6'b01_0000,
-    ALU_SRA           = 6'b01_0001,
-    ALU_SRL           = 6'b01_0010,
-    
-    //compare instr
-    ALU_SLT           = 6'b01_1000,
-    ALU_SLTU          = 6'b01_1001,
-    
-    //branch comparisons
-    ALU_EQ            = 6'b10_0000,
-    ALU_NE            = 6'b10_0001,
-    ALU_LT            = 6'b10_0010,
-    ALU_GE            = 6'b10_0011,
-    ALU_LTU           = 6'b10_0100,
-    ALU_GEU           = 6'b10_0101
-} alu_op_e;
+typedef enum logic [1:0] {
+    ALU_XOR,
+    ALU_OR,
+    ALU_AND 
+} logic_op_e;
 
+typedef enum logic [1:0] {
+    ALU_EQ,
+    ALU_NE,
+    ALU_LT,
+    ALU_GE
+} comp_op_e;
+
+typedef enum logic [1:0] {
+    ALU_SLL,
+    ALU_SRA,
+    ALU_SRL
+} shift_op_e;
 
 typedef enum logic [2:0] {
     MUL,
@@ -128,7 +120,6 @@ typedef enum logic [2:0] {
     REM,
     REMU   
 } mult_op_e;
-
 
 typedef enum logic[0:0] {
     MEPC_PC_IF,
@@ -154,11 +145,12 @@ typedef enum logic [2:0] {
     LSU_DTYPE_S_WORD      = 3'b110
 } lsu_dtype_e;
 
-typedef enum logic [1:0] {
+typedef enum logic [2:0] {
     SRC_A_REG_RS1,
     SRC_A_IMM_UTYPE,
     SRC_A_PC_ID,
-    SRC_A_IMM_RS1
+    SRC_A_IMM_RS1,
+    SRC_A_JUMP
 } src_a_mux_e;
 
 typedef enum logic [2:0] {
@@ -167,14 +159,27 @@ typedef enum logic [2:0] {
     SRC_B_IMM_ITYPE,
     SRC_B_IMM_JTYPE,
     SRC_B_IMM_STYPE,
+    SRC_B_TBT,
     SRC_B_ZERO
 } src_b_mux_e;
 
-typedef enum logic [1:0] {
+typedef enum logic [2:0] {
     SRC_C_IMM_BTYPE,
+    SRC_C_IMM_ITYPE,
+    SRC_C_IMM_JTYPE,
     SRC_C_REG_RS2,
     SRC_C_CSR_ADDR
 } src_c_mux_e;
+
+typedef enum logic [0:0] {
+    ADDER_A_PC_ID,
+    ADDER_A_REG_RS1
+} adder_op_a_mux_e;
+
+typedef enum logic [0:0] {
+    ADDER_B_IMM_ITYPE,
+    ADDER_B_IMM_JTYPE
+} adder_op_b_mux_e;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 //csr

@@ -31,6 +31,9 @@ module decoder(/*AUTOARG*/
     output src_b_mux_e      src_b_mux,
     output src_c_mux_e      src_c_mux,
 
+    output adder_op_a_mux_e adder_op_a_mux,
+    output adder_op_b_mux_e adder_op_b_mux,
+
     //imm
     output logic [31:0]     imm_itype, 
     output logic [31:0]     imm_stype,
@@ -40,8 +43,15 @@ module decoder(/*AUTOARG*/
     output logic [31:0]     imm_rs1,
 
     //alu
-    output logic            alu_en,
-    output alu_op_e         alu_op,
+    output logic            sign,
+    output logic            adder_en,
+    output adder_op_e       adder_op,
+    output logic            comp_en,
+    output comp_op_e        comp_op,
+    output logic            logic_en,
+    output logic_op_e       logic_op,
+    output logic            shift_en,
+    output shift_op_e       shift_op,
     output logic            branch,
     output logic            jump,
 
@@ -79,8 +89,7 @@ module decoder(/*AUTOARG*/
 //////////////////////////////////////////////
 `define BRANCH_DEC              \
     branch      = 1'b1;         \
-    alu_en      = 1'b1;         \
-    alu_op      = ALU_ADD;      \
+    adder_op    = ALU_SUB;      \
     rs1_rd_en   = 1'b1;         \
     rs2_rd_en   = 1'b1;         \
     src_a_mux   = SRC_A_REG_RS1;      \
@@ -88,7 +97,6 @@ module decoder(/*AUTOARG*/
     src_c_mux   = SRC_C_IMM_BTYPE     
 
 `define ALU_R_DEC               \
-    alu_en      = 1'b1;         \
     rs1_rd_en   = 1'b1;         \
     rs2_rd_en   = 1'b1;         \
     src_a_mux   = SRC_A_REG_RS1;      \
@@ -96,7 +104,6 @@ module decoder(/*AUTOARG*/
     rd_wr_en    = 1'b1;         
 
 `define ALU_I_DEC               \
-    alu_en      = 1'b1;         \
     rs1_rd_en   = 1'b1;         \
     src_a_mux   = SRC_A_REG_RS1;      \
     src_b_mux   = SRC_B_IMM_ITYPE;    \
@@ -280,32 +287,42 @@ assign rs2_rd_addr = rs2;
 assign rd_wr_addr = rd;
 
 always @(*)begin
-    alu_en       = 1'b0;
-    alu_op       = ALU_ADD;
+    sign            = 1'b0;
+    adder_en        = 1'b0;
+    adder_op        = ALU_ADD;
+    logic_en        = 1'b0;
+    logic_op        = ALU_AND;
+    shift_en        = 1'b0;
+    shift_op        = ALU_SRA;
+    comp_en         = 1'b0;
+    comp_op         = ALU_EQ;
     
-    mult_en      = 1'b0;
-    mult_op      = MUL;
+    mult_en         = 1'b0;
+    mult_op         = MUL;
 
-    lsu_en       = 1'b0;
-    lsu_op       = LSU_OP_LD;
-    lsu_dtype    = LSU_DTYPE_U_BYTE;
+    lsu_en          = 1'b0;
+    lsu_op          = LSU_OP_LD;
+    lsu_dtype       = LSU_DTYPE_U_BYTE;
 
-    branch      = 1'b0;
-    jump        = 1'b0;
-    csr_en      = 1'b0;
-    ecall_en    = 1'b0;
-    ebreak_en   = 1'b0;
-    mret_en     = 1'b0;
-    uret_en     = 1'b0;
-    sret_en     = 1'b0;
-    wfi_en      = 1'b0;
-    fence_en    = 1'b0;
+    branch          = 1'b0;
+    jump            = 1'b0;
+    csr_en          = 1'b0;
+    ecall_en        = 1'b0;
+    ebreak_en       = 1'b0;
+    mret_en         = 1'b0;
+    uret_en         = 1'b0;
+    sret_en         = 1'b0;
+    wfi_en          = 1'b0;
+    fence_en        = 1'b0;
 
-    rs1_rd_en   = 1'b0;
-    rs2_rd_en   = 1'b0;
-    src_a_mux   = SRC_A_REG_RS1;
-    src_b_mux   = SRC_B_REG_RS2;
-    src_c_mux   = SRC_C_IMM_BTYPE;
+    rs1_rd_en       = 1'b0;
+    rs2_rd_en       = 1'b0;
+    src_a_mux       = SRC_A_REG_RS1;
+    src_b_mux       = SRC_B_REG_RS2;
+    src_c_mux       = SRC_C_IMM_BTYPE;
+
+    adder_op_a_mux = ADDER_A_PC_ID;
+    adder_op_b_mux = ADDER_B_IMM_ITYPE;
 
     rd_wr_en        = 1'b0;
     illegal_instr   = 1'b0;
@@ -313,50 +330,54 @@ always @(*)begin
     if(instr_value )begin
         unique case(1)
             lui_instr       :begin 
-                alu_en      = 1'b1;
-                alu_op      = ALU_ADD;
+                adder_en    = 1'b1;
+                adder_op    = ALU_ADD;
                 src_a_mux   = SRC_A_IMM_UTYPE;
                 src_b_mux   = SRC_B_ZERO;
                 rd_wr_en    = 1'b1;
             end
             auipc_instr     :begin 
-                alu_en      = 1'b1;
-                alu_op      = ALU_ADD;
+                adder_en    = 1'b1;
+                adder_op    = ALU_ADD;
                 src_a_mux   = SRC_A_PC_ID;
                 src_b_mux   = SRC_B_IMM_UTYPE;
                 rd_wr_en    = 1'b1;
             end
             branch_instr    :begin 
                 unique case(1)
-                    beq     :begin `BRANCH_DEC; alu_op = ALU_EQ ;  end
-                    bne     :begin `BRANCH_DEC; alu_op = ALU_NE ;  end
-                    blt     :begin `BRANCH_DEC; alu_op = ALU_LT ;  end
-                    bge     :begin `BRANCH_DEC; alu_op = ALU_GE ;  end
-                    bltu    :begin `BRANCH_DEC; alu_op = ALU_LTU;  end
-                    bgeu    :begin `BRANCH_DEC; alu_op = ALU_GEU;  end
+                    beq     :begin `BRANCH_DEC; comp_op = ALU_EQ; sign = 1'b1; end
+                    bne     :begin `BRANCH_DEC; comp_op = ALU_NE; sign = 1'b1; end
+                    blt     :begin `BRANCH_DEC; comp_op = ALU_LT; sign = 1'b1; end
+                    bge     :begin `BRANCH_DEC; comp_op = ALU_GE; sign = 1'b1; end
+                    bltu    :begin `BRANCH_DEC; comp_op = ALU_LT; sign = 1'b0; end
+                    bgeu    :begin `BRANCH_DEC; comp_op = ALU_GE; sign = 1'b0; end
                     default :begin illegal_instr = 1'b1; end
                 endcase
             end
             jalr_instr      :begin 
                 if( funct3[2:0] == 3'b0 )begin
-                    alu_en = 1'b1;
-                    alu_op = ALU_ADD;
-                    rs1_rd_en = 1'b1;
-                    src_a_mux = SRC_A_REG_RS1;
-                    src_b_mux = SRC_B_IMM_ITYPE;
                     jump = 1'b1;
+                    adder_op_a_mux = ADDER_A_REG_RS1;
+                    adder_op_b_mux = ADDER_B_IMM_ITYPE;
+                    src_a_mux       = SRC_A_JUMP;
+                    src_b_mux       = SRC_B_TBT;
+                    comp_op         = ALU_EQ;
+                    adder_op        = ALU_SUB;
+                    rs1_rd_en = 1'b1;
                     rd_wr_en  = 1'b1;
                 end else begin
                     illegal_instr = 1'b1;
                 end
             end
             jal_instr       :begin 
-                alu_en = 1'b1;
-                alu_op = ALU_ADD;
-                src_a_mux = SRC_A_PC_ID;
-                src_b_mux = SRC_B_IMM_JTYPE;
                 jump = 1'b1;
-                rd_wr_en = 1'b1;
+                adder_op_a_mux = ADDER_A_PC_ID;
+                adder_op_b_mux = ADDER_B_IMM_JTYPE;
+                src_a_mux       = SRC_A_JUMP;
+                src_b_mux       = SRC_B_TBT;
+                comp_op         = ALU_EQ;
+                adder_op        = ALU_SUB;
+                rd_wr_en        = 1'b1;
             end
             load_instr      :begin 
                 lsu_en = 1'b1;
@@ -366,8 +387,7 @@ always @(*)begin
                 src_a_mux = SRC_A_REG_RS1;
                 src_b_mux = SRC_B_IMM_ITYPE;
                 rd_wr_en = 1'b1;
-                alu_en = 1'b1;
-                alu_op = ALU_ADD;
+                adder_op = ALU_ADD;
             end
             store_instr     :begin
                 lsu_en = 1'b1;
@@ -378,35 +398,34 @@ always @(*)begin
                 src_a_mux = SRC_A_REG_RS1;
                 src_b_mux = SRC_B_IMM_STYPE;
                 src_c_mux = SRC_C_REG_RS2;
-                alu_en = 1'b1;
-                alu_op = ALU_ADD;
+                adder_op = ALU_ADD;
             end
             itype_instr     :begin
                 unique case(1)
-                    addi_instr : begin `ALU_I_DEC; alu_op = ALU_ADD; end
-                    xori_instr : begin `ALU_I_DEC; alu_op = ALU_XOR; end
-                    ori_instr  : begin `ALU_I_DEC; alu_op = ALU_OR;  end
-                    andi_instr : begin `ALU_I_DEC; alu_op = ALU_AND; end
-                    slli_instr : begin `ALU_I_DEC; alu_op = ALU_SLL; end
-                    srai_instr : begin `ALU_I_DEC; alu_op = ALU_SRA; end
-                    srli_instr : begin `ALU_I_DEC; alu_op = ALU_SRL; end
-                    slti_instr : begin `ALU_I_DEC; alu_op = ALU_SLT; end
-                    sltui_instr: begin `ALU_I_DEC; alu_op = ALU_SLTU;end
+                    addi_instr : begin `ALU_I_DEC; adder_en = 1'b1; adder_op = ALU_ADD; end
+                    xori_instr : begin `ALU_I_DEC; logic_en = 1'b1; logic_op = ALU_XOR; end
+                    ori_instr  : begin `ALU_I_DEC; logic_en = 1'b1; logic_op = ALU_OR;  end
+                    andi_instr : begin `ALU_I_DEC; logic_en = 1'b1; logic_op = ALU_AND; end
+                    slli_instr : begin `ALU_I_DEC; shift_en = 1'b1; shift_op = ALU_SLL; end
+                    srai_instr : begin `ALU_I_DEC; shift_en = 1'b1; shift_op = ALU_SRA; end
+                    srli_instr : begin `ALU_I_DEC; shift_en = 1'b1; shift_op = ALU_SRL; end
+                    slti_instr : begin `ALU_I_DEC; comp_en = 1'b1; comp_op = ALU_LT; adder_op = ALU_SUB; sign = 1'b1; end
+                    sltui_instr: begin `ALU_I_DEC; comp_en = 1'b1; comp_op = ALU_LT; adder_op = ALU_SUB; sign = 1'b0; end
                     default:begin illegal_instr = 1'b1; end
                 endcase
             end
             rtype_instr     :begin
                 unique case(1)
-                    add_instr : begin `ALU_R_DEC; alu_op = ALU_ADD; end
-                    sub_instr : begin `ALU_R_DEC; alu_op = ALU_SUB; end
-                    xor_instr : begin `ALU_R_DEC; alu_op = ALU_XOR; end
-                    or_instr  : begin `ALU_R_DEC; alu_op = ALU_OR;  end
-                    and_instr : begin `ALU_R_DEC; alu_op = ALU_AND; end
-                    sll_instr : begin `ALU_R_DEC; alu_op = ALU_SLL; end
-                    sra_instr : begin `ALU_R_DEC; alu_op = ALU_SRA; end
-                    srl_instr : begin `ALU_R_DEC; alu_op = ALU_SRL; end
-                    slt_instr : begin `ALU_R_DEC; alu_op = ALU_SLT; end
-                    sltu_instr: begin `ALU_R_DEC; alu_op = ALU_SLTU;end
+                    add_instr : begin `ALU_R_DEC; adder_en = 1'b1; adder_op = ALU_ADD; end
+                    sub_instr : begin `ALU_R_DEC; adder_en = 1'b1; adder_op = ALU_SUB; end
+                    xor_instr : begin `ALU_R_DEC; logic_en = 1'b1; logic_op = ALU_XOR; end
+                    or_instr  : begin `ALU_R_DEC; logic_en = 1'b1; logic_op = ALU_OR;  end
+                    and_instr : begin `ALU_R_DEC; logic_en = 1'b1; logic_op = ALU_AND; end
+                    sll_instr : begin `ALU_R_DEC; shift_en = 1'b1; shift_op = ALU_SLL; end
+                    sra_instr : begin `ALU_R_DEC; shift_en = 1'b1; shift_op = ALU_SRA; end
+                    srl_instr : begin `ALU_R_DEC; shift_en = 1'b1; shift_op = ALU_SRL; end
+                    slt_instr : begin `ALU_R_DEC; comp_en = 1'b1; comp_op = ALU_LT; adder_op = ALU_SUB; sign = 1'b1; end
+                    sltu_instr: begin `ALU_R_DEC; comp_en = 1'b1; comp_op = ALU_LT; adder_op = ALU_SUB; sign = 1'b0; end
                     mul_instr :     begin `MULT_DEC; mult_op = MUL; end
                     mulh_instr:     begin `MULT_DEC; mult_op = MULH; end
                     mulhsu_instr:   begin `MULT_DEC; mult_op = MULHSU; end

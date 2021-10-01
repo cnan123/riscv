@@ -36,7 +36,7 @@ module ex_stage#(
 
     //update btb
     input                       compress_instr_ex,
-    input                       branch_prediction_ex,
+    input                       predict_taken_ex,
     output logic                prediction_fail,
     output logic                btb_invalid,
     output logic                btb_update,
@@ -44,8 +44,15 @@ module ex_stage#(
     output logic [31:0]         branch_target,
              
     //alu
-    input logic                 alu_en_ex,
-    input alu_op_e              alu_op_ex,
+    input logic                 sign_ex,
+    input logic                 adder_en_ex,
+    input adder_op_e            adder_op_ex,
+    input logic                 comp_en_ex,
+    input comp_op_e             comp_op_ex,
+    input logic                 logic_en_ex,
+    input logic_op_e            logic_op_ex,
+    input logic                 shift_en_ex,
+    input shift_op_e            shift_op_ex,
 
     input logic [31:0]          src_a_ex,         
     input logic [31:0]          src_b_ex,         
@@ -118,9 +125,10 @@ module ex_stage#(
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
 // Beginning of automatic wires (for undeclared instantiated-module outputs)
-logic [31:0]		adder_result;		// From u_alu of alu.v
-logic			alu_result_valid;	// From u_alu of alu.v
-logic			branch_compare_result;	// From u_alu of alu.v
+logic [31:0]		adder0_result;		// From u_alu of alu.v
+logic [31:0]		adder1_result;		// From u_alu of alu.v
+logic [31:0]		adder2_result;		// From u_alu of alu.v
+logic			compare_result;		// From u_alu of alu.v
 logic [31:0]		csr_rdata;		// From csr_register of csr.v
 logic			illegal_csr;		// From csr_register of csr.v
 logic [31:0]		logic_result;		// From u_alu of alu.v
@@ -133,7 +141,7 @@ logic [31:0]		remainder;		// From divider of div.v
 logic [31:0]    alu_result;
 logic [31:0]    shift_result;
 logic           branch;
-logic           alu;
+logic           alu_en;
 logic           equal_result;
 logic           less_than_result;
 
@@ -153,33 +161,57 @@ logic           exc_ex;
 
 logic           compare_taken;
 
+logic [31:0]    adder1_op_a;
+logic [31:0]    adder1_op_b;
+logic [31:0]    adder2_op_a;
+logic [31:0]    adder2_op_b;
+
 //////////////////////////////////////////////
 //main code
 
 /* alu AUTO_TEMPLATE(
-   	.operator			(alu_op_ex[]),
+   	.\(.*\)_op			(\1_op_ex),
+   	.\(.*\)_en			(\1_en_ex),
+    .sign               (sign_ex),
 	.operator_a			(src_a_ex[]),
-	.operator_b			(src_b_ex[]));
+	.operator_b			(src_b_ex[]),
 );
 */
-
 alu u_alu(/*AUTOINST*/
 	  // Interfaces
-	  .operator			(alu_op_ex),		 // Templated
+	  .adder_op			(adder_op_ex),		 // Templated
+	  .comp_op			(comp_op_ex),		 // Templated
+	  .logic_op			(logic_op_ex),		 // Templated
+	  .shift_op			(shift_op_ex),		 // Templated
 	  // Outputs
-	  .adder_result			(adder_result[31:0]),
+	  .adder0_result		(adder0_result[31:0]),
 	  .logic_result			(logic_result[31:0]),
 	  .shift_result			(shift_result[31:0]),
-	  .branch_compare_result	(branch_compare_result),
+	  .compare_result		(compare_result),
+	  .adder1_result		(adder1_result[31:0]),
+	  .adder2_result		(adder2_result[31:0]),
 	  .alu_result			(alu_result[31:0]),
-	  .alu_result_valid		(alu_result_valid),
 	  // Inputs
+	  .sign				(sign_ex),		 // Templated
+	  .adder_en			(adder_en_ex),		 // Templated
+	  .comp_en			(comp_en_ex),		 // Templated
+	  .logic_en			(logic_en_ex),		 // Templated
+	  .shift_en			(shift_en_ex),		 // Templated
 	  .operator_a			(src_a_ex[31:0]),	 // Templated
-	  .operator_b			(src_b_ex[31:0]));	 // Templated
+	  .operator_b			(src_b_ex[31:0]),	 // Templated
+	  .adder1_op_a			(adder1_op_a[31:0]),
+	  .adder1_op_b			(adder1_op_b[31:0]),
+	  .adder2_op_a			(adder2_op_a[31:0]),
+	  .adder2_op_b			(adder2_op_b[31:0]));
 
+assign alu_en = adder_en_ex | comp_en_ex | logic_en_ex | shift_en_ex;
 
+assign adder1_op_a = pc_ex;
+assign adder1_op_b = src_c_ex;
 
-  
+assign adder2_op_a = pc_ex;
+assign adder2_op_b = (32'h2 << (~compress_instr_ex) );
+
 /*csr AUTO_TEMPLATE(
     .csr_en		(csr_en_ex),
 	.csr_op		(csr_op_ex[]),
@@ -281,28 +313,28 @@ div divider(/*AUTOINST*/
 	    .op_b			(src_b_ex[31:0]));	 // Templated
 
 //////////////////////////////////////////////
-//branch
+//branch/jump
 //////////////////////////////////////////////
-assign compare_taken = branch_compare_result & alu_en_ex;
+assign compare_taken = compare_result & branch_ex;
 
-assign branch_taken         = prediction_fail;
-assign branch_target_addr   = btb_invalid ? (pc_ex + (32'h2 << (~compress_instr_ex) )) : (pc_ex + src_c_ex);
+assign branch_taken         = branch_ex & prediction_fail;
+assign branch_target_addr   = btb_invalid ? adder2_result : adder1_result;
 
-assign prediction_fail = branch_ex & ( 
-    ( branch_prediction_ex & (~compare_taken) ) | 
-    (~branch_prediction_ex & compare_taken) 
+assign jump_taken           = jump_ex & prediction_fail;
+assign jump_target_addr     = src_a_ex;
+
+assign prediction_fail = ( 
+    ( predict_taken_ex  & ( (branch_ex & (~compare_result)) | ( (~compare_result) & jump_ex) ) ) | 
+    ( (~predict_taken_ex)   & branch_ex & compare_taken) |
+    ( (~predict_taken_ex)   & jump_ex ) 
 );
 
 assign btb_update       = prediction_fail;
-assign btb_invalid      = (branch_prediction_ex & (~compare_taken));
+assign btb_invalid      = ( branch_ex & predict_taken_ex & (~compare_taken));
 assign branch_pc        = pc_ex;
-assign branch_target    = pc_ex + src_c_ex;
+assign branch_target    = jump_ex ? jump_target_addr : adder1_result;
+//assign branch_target    = adder1_result;
 
-//////////////////////////////////////////////
-//jump
-//////////////////////////////////////////////
-assign jump_taken = jump_ex;
-assign jump_target_addr = adder_result;
 
 //////////////////////////////////////////////
 //control
@@ -311,7 +343,7 @@ assign jump_target_addr = adder_result;
 assign ready_ex = (~stall_E) & ready_mem & ready_div & (~exc_ex);
 assign valid_ex = (~stall_E) & ready_mem & ready_div;
 
-assign return_addr  = pc_id; //next instr
+assign return_addr  = adder2_result; //next instr
 
 
 //////////////////////////////////////////////
@@ -332,7 +364,7 @@ always @(posedge clk or negedge reset_n)begin
         lsu_en_mem          <= lsu_en_ex;
         lsu_op_mem          <= lsu_op_ex;
         lsu_dtype_mem[2:0]  <= lsu_dtype_ex[2:0];
-        lsu_addr_mem[31:0]  <= adder_result[31:0];
+        lsu_addr_mem[31:0]  <= adder0_result[31:0];
     end
 end
 assign lsu_wdata_mem[31:0] = rd_wr_data_mem[31:0];
@@ -358,14 +390,6 @@ end
 
 always @(*)begin
     rd_wr_data_ex = 32'h0;
-    if(alu_en_ex)begin
-        if(jump_ex)begin
-            rd_wr_data_ex = return_addr;
-        end else begin
-            rd_wr_data_ex = alu_result;
-        end
-    end
-
     unique case(1)
         lsu_en_ex:begin
             rd_wr_data_ex = src_c_ex;
@@ -376,11 +400,13 @@ always @(*)begin
         mult_en_ex:begin
             rd_wr_data_ex = mult_res;
         end
-        default:;
+        default:begin
+            rd_wr_data_ex = jump_ex ? return_addr : alu_result;
+        end
     endcase
 end
 
-assign forward_ex_en    = rd_wr_en_ex & valid_ex & (alu_en_ex | div_en ) & (~lsu_en_ex);
+assign forward_ex_en    = rd_wr_en_ex & valid_ex & (alu_en | div_en );
 assign forward_ex_tag   = rd_wr_tag_ex;
 assign forward_ex_addr  = rd_wr_addr_ex;
 assign forward_ex_wdata = rd_wr_data_ex;

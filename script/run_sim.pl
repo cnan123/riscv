@@ -25,7 +25,7 @@ GetOptions (
     "c_comp=s"      => \@c_comp,
     "comp=s"        => \@vcs_comp,
     "sim=s"         => \@sim_comp,
-    "no_case"       => \$no_case,
+    "fsdb"          => \$fsdb,
     "fl=s"          => \$filelist
 ) or die("Error in command line arguments\n");
 
@@ -91,6 +91,8 @@ my $NOVAS_HOME = $ENV{"NOVAS_HOME"};
 foreach (@rtl_defines){
     $defines .= "+define+$_ ";
 }
+
+if( defined($fsdb) ){ $defines .= "+define+FSDB "; }
 
 $vcs_option .= "-full64 -cpp g++-4.8 -cc gcc-4.8 ";
 $vcs_option .= "-LDFLAGS -Wl,-no-as-needed ";

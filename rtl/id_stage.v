@@ -19,7 +19,8 @@ module id_stage(
     input [31:0]                pc_id,
     input [31:0]                instr_payload,
     input                       instr_value,
-    input                       branch_prediction_id,
+    input                       predict_taken_id,
+    input [31:0]                predict_pc_id,
     input                       compress_instr_id,
     input                       instr_fetch_error, //PMP or Bus error respone. TODO
 
@@ -60,10 +61,17 @@ module id_stage(
     output logic                compress_instr_ex,
     output logic                jump_ex,
     output logic                branch_ex,
-    output logic                branch_prediction_ex,
+    output logic                predict_taken_ex,
     //alu
-    output logic                alu_en_ex,
-    output alu_op_e             alu_op_ex,
+    output logic                sign_ex,
+    output logic                adder_en_ex,
+    output adder_op_e           adder_op_ex,
+    output logic                comp_en_ex,
+    output comp_op_e            comp_op_ex,
+    output logic                logic_en_ex,
+    output logic_op_e           logic_op_ex,
+    output logic                shift_en_ex,
+    output shift_op_e           shift_op_ex,
     output logic [31:0]         src_a_ex,         
     output logic [31:0]         src_b_ex,         
     output logic [31:0]         src_c_ex,         
@@ -137,8 +145,16 @@ logic [4:0]             rd_rf2_addr;
 logic [31:0]            rd_rf2_data;
 logic                   rd_rf2_dirty;
 
-logic                   alu_en_id;
-alu_op_e                alu_op_id;
+logic                   sign_id;
+logic                   adder_en_id;
+adder_op_e              adder_op_id;
+logic                   comp_en_id;
+comp_op_e               comp_op_id;
+logic                   logic_en_id;
+logic_op_e              logic_op_id;
+logic                   shift_en_id;
+shift_op_e              shift_op_id;
+
 logic                   branch_id;
 logic                   jump_id;
 
@@ -180,6 +196,14 @@ logic                   read_rf_busy;
 logic                   exc_taken_id;
 logic                   valid_id;
 
+
+adder_op_a_mux_e adder_op_a_mux;
+adder_op_b_mux_e adder_op_b_mux;
+
+logic [31:0] adder_op_a;
+logic [31:0] adder_op_b;
+logic [31:0] jump_target;
+
 //////////////////////////////////////////////
 //main code
 
@@ -193,6 +217,7 @@ always @(*)begin
         SRC_A_IMM_UTYPE   :begin src_a_id = imm_utype;end
         SRC_A_PC_ID       :begin src_a_id = pc_id;end
         SRC_A_IMM_RS1     :begin src_a_id = imm_rs1;end
+        SRC_A_JUMP        :begin src_a_id = jump_target;end
         default:begin src_a_id = 32'h0;end
     endcase
 end
@@ -204,7 +229,8 @@ always @(*)begin
         SRC_B_IMM_ITYPE   :begin src_b_id = imm_itype;end
         SRC_B_IMM_UTYPE   :begin src_b_id = imm_utype;end
         SRC_B_IMM_JTYPE   :begin src_b_id = imm_jtype;end
-        SRC_B_IMM_STYPE   :begin src_b_id = imm_stype;end        
+        SRC_B_IMM_STYPE   :begin src_b_id = imm_stype;end 
+        SRC_B_TBT         :begin src_b_id = predict_pc_id;end
         SRC_B_ZERO        :begin src_b_id = 32'h0; end
         default:begin src_b_id = 32'h0; end
     endcase
@@ -220,6 +246,33 @@ always @(*)begin
     endcase
 end
 
+always_comb begin
+    adder_op_a = pc_id;
+    unique case( adder_op_a_mux)
+        ADDER_A_PC_ID:      adder_op_a = pc_id;
+        ADDER_A_REG_RS1:    adder_op_a = rs1_rd_data;
+        default:;
+    endcase
+end
+
+always_comb begin
+    adder_op_b = imm_itype;
+    unique case( adder_op_b_mux)
+        ADDER_B_IMM_ITYPE: adder_op_b = imm_itype;
+        ADDER_B_IMM_JTYPE: adder_op_b = imm_jtype;
+        default:;
+    endcase
+end
+
+rv_adder jump_tg(
+		  .en			(1'b1                       ),
+		  .op			(ALU_ADD                    ),
+		  .op_a			(adder_op_a[31:0]           ),
+		  .op_b			(adder_op_b[31:0]           ),
+		  .res			(jump_target[31:0]          )
+);
+
+
 decoder decoder( /*AUTOINST*/
 		.clk			    (clk),
 		.reset_n		    (reset_n),
@@ -232,8 +285,16 @@ decoder decoder( /*AUTOINST*/
 		.rs2_rd_en		    (rs2_rd_en),
 		.rs2_rd_addr		(rs2_rd_addr[4:0]),
 
-		.alu_en			    (alu_en_id),
-		.alu_op			    (alu_op_id),
+        .sign               (sign_id               ),
+        .adder_en           (adder_en_id           ),
+        .adder_op           (adder_op_id           ),
+        .comp_en            (comp_en_id            ),
+        .comp_op            (comp_op_id            ),
+        .logic_en           (logic_en_id           ),
+        .logic_op           (logic_op_id           ),
+        .shift_en           (shift_en_id           ),
+        .shift_op           (shift_op_id           ),
+
 		.branch			    (branch_id),
         .jump               (jump_id),
 
@@ -251,6 +312,9 @@ decoder decoder( /*AUTOINST*/
 		.src_a_mux		    (src_a_mux),
 		.src_b_mux		    (src_b_mux),
 		.src_c_mux		    (src_c_mux),
+        
+		.adder_op_a_mux		(adder_op_a_mux),
+		.adder_op_b_mux		(adder_op_b_mux),
 		
         .rd_wr_en		    (rd_wr_en_id),
 		.rd_wr_addr		    (rd_wr_addr_id[4:0]),
@@ -373,8 +437,15 @@ assign read_rf_busy = (rs1_rd_en & (~rs1_rd_value)) | (rs2_rd_en & (~rs2_rd_valu
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
-        alu_en_ex               <= 1'b0;
-        alu_op_ex               <= ALU_NONE;
+        sign_ex                 <= 1'b0;
+        adder_en_ex             <= 1'b0;   
+        comp_en_ex              <= 1'b0;   
+        logic_en_ex             <= 1'b0;
+        shift_en_ex             <= 1'b0;
+        adder_op_ex             <= ALU_ADD; 
+        comp_op_ex              <= ALU_EQ;
+        logic_op_ex             <= ALU_AND;
+        shift_op_ex             <= ALU_SRA;
 
         lsu_en_ex               <= 1'b0;
         lsu_op_ex               <= LSU_OP_LD;
@@ -391,7 +462,7 @@ always @(posedge clk or negedge reset_n)begin
         src_c_ex                <= 32'h0;
 
         compress_instr_ex       <= 1'b0;
-        branch_prediction_ex    <= 1'b0;
+        predict_taken_ex    <= 1'b0;
         branch_ex               <= 1'b0;
         jump_ex                 <= 1'b0;
 
@@ -400,18 +471,28 @@ always @(posedge clk or negedge reset_n)begin
         rd_wr_addr_ex           <= 5'h0;
     end else if( (flush_D & ready_id) | ((~ready_id) & ready_ex) )begin
     //flush pipeline: program flow was broken such as jump/branch/interrupt/exception
-        alu_en_ex               <= 1'b0;
+        adder_en_ex             <= 1'b0;   
+        comp_en_ex              <= 1'b0;   
+        logic_en_ex             <= 1'b0;
+        shift_en_ex             <= 1'b0;
         lsu_en_ex               <= 1'b0;
         mult_en_ex              <= 1'b0;
         csr_en_ex               <= 1'b0;
         branch_ex               <= 1'b0;
         jump_ex                 <= 1'b0;
         rd_wr_en_ex             <= 1'b0;
-        branch_prediction_ex    <= 1'b0;
+        predict_taken_ex    <= 1'b0;
     end else if( ready_id )begin
     //flow pipeline :ID stage is ready
-        alu_en_ex               <= alu_en_id;
-        alu_op_ex               <= alu_op_id;
+        sign_ex                 <= sign_id;
+        adder_en_ex             <= adder_en_id;   
+        comp_en_ex              <= comp_en_id;   
+        logic_en_ex             <= logic_en_id;
+        shift_en_ex             <= shift_en_id;
+        adder_op_ex             <= adder_op_id; 
+        comp_op_ex              <= comp_op_id;
+        logic_op_ex             <= logic_op_id;
+        shift_op_ex             <= shift_op_id;
 
         lsu_en_ex               <= lsu_en_id;
         lsu_op_ex               <= lsu_op_id;
@@ -429,8 +510,8 @@ always @(posedge clk or negedge reset_n)begin
 
         compress_instr_ex       <= compress_instr_id;
         branch_ex               <= branch_id;
-        branch_prediction_ex    <= branch_prediction_id;
         jump_ex                 <= jump_id;
+        predict_taken_ex        <= predict_taken_id;
 
         rd_wr_en_ex             <= rd_wr_en_id;
         rd_wr_tag_ex            <= rd_wr_tag_id;

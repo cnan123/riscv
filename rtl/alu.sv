@@ -10,56 +10,52 @@
 //================================================================
 import riscv_pkg::*;
 module alu (
-        input alu_op_e                  operator,
+        input logic                     sign,
+        input logic                     adder_en,
+        input adder_op_e                adder_op,
+        input logic                     comp_en,
+        input comp_op_e                 comp_op,
+        input logic                     logic_en,
+        input logic_op_e                logic_op,
+        input logic                     shift_en,
+        input shift_op_e                shift_op,
+
         input logic     [31:0]          operator_a,
         input logic     [31:0]          operator_b,
 
-        output logic    [31:0]          adder_result,
+        output logic    [31:0]          adder0_result,
         output logic    [31:0]          logic_result,
         output logic    [31:0]          shift_result,
-        output logic                    branch_compare_result,
+        output logic                    compare_result,
 
-        output logic    [31:0]          alu_result,
-        output logic                    alu_result_valid
+        input           [31:0]          adder1_op_a,
+        input           [31:0]          adder1_op_b,
+        output logic    [31:0]          adder1_result,
+
+        input           [31:0]          adder2_op_a,
+        input           [31:0]          adder2_op_b,
+        output logic    [31:0]          adder2_result,
+
+        output logic    [31:0]          alu_result
 );
 
 // Local Variables:
-// verilog-library-directories:("." "dir1" "dir2" ...)
+// verilog-library-directories:(".")
 // End:
 
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
+// Beginning of automatic wires (for undeclared instantiated-module outputs)
+logic [31:0]		res;			// From comp of rv_compare.v, ...
+// End of automatics
 //////////////////////////////////////////////
 logic   [31:0]  operator_a_rev;
 logic   [31:0]  operator_b_rev;
 
 logic [31:0]    operator_a_neg;
 logic [31:0]    operator_b_neg;
-logic           adder_op_b_negate;
-logic [32:0]    adder_op_a;
-logic [32:0]    adder_op_b;
-logic [32:0]    adder_extend_result;
 
-logic           sub_op;
-
-logic           branch_compare_op;
-logic           compare_instr_op;
-logic           cmp_signed;
-logic           is_equal;
-logic           is_great_equal;
-logic           cmp_result;
-logic   [31:0]  compare_result;
-
-logic           logic_op;
-
-logic           shift_op;
-logic           shift_left;
-logic           shift_arith;
-logic   [31:0]  shift_operate;
-logic   [31:0]  shift_right_result;
-logic   [31:0]  shift_left_result;
-logic   [4:0]   shift_amt_int;
-logic           shift_signed;
+logic   [31:0]  alu_compare_result;
 
 genvar          i;
 
@@ -76,73 +72,57 @@ for(i=0;i<32;i=i+1)begin: op_rev
 end
 endgenerate
 
-//////////////////////////////////////////////
+///////////////////////////////////////////////////////////////
 //adder
-//////////////////////////////////////////////
-assign adder_op = (operator==ALU_SUB) | (operator==ALU_ADD);
+//adder0: support ADD/SUB, used for common operate
+//adder1: support ADD, used for generate branch/jump targer
+//adder2: support ADD, used for generate branch/jump targer
+///////////////////////////////////////////////////////////////
+rv_adder rv_adder0(
+		  .en			(adder_en           ),
+		  .op			(adder_op           ),
+		  .op_a			(operator_a[31:0]   ),
+		  .op_b			(operator_b[31:0]   ),
+		  .res			(adder0_result[31:0])
+);
 
-assign sub_op = (operator == ALU_SUB);
-assign adder_op_b_negate = sub_op | branch_compare_op | compare_instr_op;
+rv_adder rv_adder1(
+		  .en			(1'b1               ),
+		  .op			(ALU_ADD            ),
+		  .op_a			(adder1_op_a[31:0]  ),
+		  .op_b			(adder1_op_b[31:0]  ),
+		  .res			(adder1_result[31:0])
+);
 
-assign adder_op_a = { operator_a, 1'b1 };
-assign adder_op_b = adder_op_b_negate ? { operator_b_neg, 1'b1 } : { operator_b, 1'b0 };
-
-assign adder_extend_result[32:0] = adder_op_a[32:0] + adder_op_b[32:0];
-assign adder_result[31:0] = adder_extend_result[32:1];
-
+rv_adder rv_adder2(
+		  .en			(1'b1               ),
+		  .op			(ALU_ADD            ),
+		  .op_a			(adder2_op_a[31:0]  ),
+		  .op_b			(adder2_op_b[31:0]  ),
+		  .res			(adder2_result[31:0])
+);
 
 //////////////////////////////////////////////
 //compare
 //////////////////////////////////////////////
-assign branch_compare_op = ( 
-        ( operator == ALU_EQ    ) |
-        ( operator == ALU_NE    ) |
-        ( operator == ALU_LT    ) |
-        ( operator == ALU_GE    ) |
-        ( operator == ALU_LTU   ) |
-        ( operator == ALU_GEU   ) 
+rv_compare comp(
+		.en			    (comp_en            ),
+		.sign			(sign               ),
+		.adder_res		(adder0_result[31:0]),
+		.op_a			(operator_a[31:0]   ),
+		.op_b			(operator_b[31:0]   ),
+		.op			    (comp_op            ),
+		.res			(compare_result     )
 );
 
-assign compare_instr_op = (
-        ( operator == ALU_SLT   ) |
-        ( operator == ALU_SLTU  ) 
-);
-
-assign cmp_signed = (operator == ALU_LT) | (operator == ALU_GE) | (operator == ALU_SLT);
-
-assign is_equal = ( adder_result[31:0] == 32'b0 );
-
-always_comb begin
-    if( (operator_a[31]^operator_b[31]) == 1'b0 )begin
-        is_great_equal = (adder_result[31]==1'b0);
-    end else begin
-        is_great_equal = operator_a[31] ^ cmp_signed;
-    end
-end
-
-always_comb begin
-    unique case(operator)
-        ALU_EQ : cmp_result = is_equal;
-        ALU_NE : cmp_result = ~is_equal;
-        ALU_LT : cmp_result = ~is_great_equal;
-        ALU_GE : cmp_result = is_great_equal;
-        ALU_LTU: cmp_result = ~is_great_equal;
-        ALU_GEU: cmp_result = is_great_equal;
-        default: cmp_result = 1'b0;
-    endcase
-end
-
-assign compare_result = {31'h0, ~is_great_equal };
-assign branch_compare_result = cmp_result;
-
+assign alu_compare_result = {31'h0, compare_result };
 
 //////////////////////////////////////////////
 //logic
 //////////////////////////////////////////////
-assign logic_op = (operator==ALU_AND) | (operator==ALU_OR) | (operator==ALU_XOR);
 always_comb begin
     logic_result = 32'h0;
-    unique case( operator )
+    unique case( logic_op )
         ALU_AND : logic_result[31:0] = operator_a & operator_b;
         ALU_OR  : logic_result[31:0] = operator_a | operator_b;
         ALU_XOR : logic_result[31:0] = operator_a ^ operator_b;
@@ -154,35 +134,26 @@ end
 //////////////////////////////////////////////
 //shift
 //////////////////////////////////////////////
-assign shift_op     = (operator==ALU_SRA) | (operator==ALU_SRL) | (operator==ALU_SLL);
-assign shift_left   = (operator==ALU_SLL);
-assign shift_arith  = (operator==ALU_SRA);
-
-assign shift_operate    = shift_left ? operator_a_rev : operator_a;
-assign shift_signed     = shift_arith & operator_a[31];
-assign shift_amt_int[4:0] = operator_b[4:0];
-
-assign shift_right_result = ($signed({shift_signed,shift_operate}) >>> shift_amt_int[4:0]);
-
-generate
-for(i=0;i<32;i=i+1)begin: shiftresult
-    assign shift_left_result[i] = shift_right_result[31-i];
-end
-endgenerate
-
-assign shift_result[31:0] = shift_left ? shift_left_result : shift_right_result; 
-
+rv_shift shift(
+	       .op			(shift_op               ),
+	       .op_a		(operator_a[31:0]       ),
+	       .op_a_rev	(operator_a_rev[31:0]   ),
+	       .amt			(operator_b[4:0]        ),
+	       .res			(shift_result[31:0]     )
+);
 
 //////////////////////////////////////////////
 //result
 //////////////////////////////////////////////
-assign alu_result = (
-    ( {32{adder_op          }} & adder_result   ) |
-    ( {32{logic_op          }} & logic_result   ) |
-    ( {32{compare_instr_op  }} & compare_result ) |
-    ( {32{shift_op          }} & shift_result   )
-);
-
-assign alu_result_valid = adder_op | logic_op | compare_instr_op | shift_op;
+always_comb begin
+    alu_result          = 32'h0;
+    unique case(1)
+        adder_en:   alu_result = adder0_result;
+        logic_en:   alu_result = logic_result;
+        comp_en:    alu_result = alu_compare_result;
+        shift_en:   alu_result = shift_result;
+        default:;
+    endcase
+end
 
 endmodule

@@ -31,7 +31,8 @@ module if_stage#(
     output logic [31:0]     instr_payload_id,
     output logic            instr_value_id,
     output logic            compress_instr_id,
-    output logic            branch_prediction_id,
+    output logic            predict_taken_id,
+    output logic [31:0]     predict_pc_id,
     output logic            instr_fetch_error,
 
     //branch prediction
@@ -178,19 +179,22 @@ always @(posedge clk or negedge reset_n)begin
         instr_value_id          <= 1'b0;
         compress_instr_id       <= 1'b0;
         instr_fetch_error       <= 1'b0;
-        branch_prediction_id    <= 1'b0;
+        predict_taken_id        <= 1'b0;
+        predict_pc_id           <= 32'b0;
     end else if( flush_F )begin
         instr_payload_id        <= 32'h0;
         instr_value_id          <= 1'b0;
         compress_instr_id       <= 1'b0;
         instr_fetch_error       <= 1'b0;
-        branch_prediction_id    <= 1'b0;
+        predict_taken_id        <= 1'b0;
+        predict_pc_id           <= 32'b0;
     end else if(ready_if) begin
         instr_payload_id        <= instruction_if;
         instr_value_id          <= instruction_value;
         compress_instr_id       <= is_compress_intr;
         instr_fetch_error       <= instruction_err;
-        branch_prediction_id    <= branch_prediction_taken;
+        predict_taken_id        <= branch_prediction_taken;
+        predict_pc_id           <= branch_prediction_pc;
     end
 end
 
@@ -450,12 +454,13 @@ always @(*)begin
     endcase
 end
 
-assign branch_prediction_taken = (~set_pc_valid) & instruction_value & (
+assign prediction_taken = (~set_pc_valid) & instruction_value & (
     ( (fsm_prediction_cs==PREDICTION_DATA) & btb_hit ) | 
     ( fsm_prediction_cs == PREDICTION_HOLD )
 );
 
 assign branch_prediction_pc = { target_pc_r, 1'b0 };
+
 
 /*
 btb AUTO_TEMPLATE(
