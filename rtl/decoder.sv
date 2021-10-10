@@ -53,7 +53,8 @@ module decoder(/*AUTOARG*/
     output logic            shift_en,
     output shift_op_e       shift_op,
     output logic            branch,
-    output logic            jump,
+    output logic            jal,
+    output logic            jalr,
 
     //lsu
     output logic            lsu_en,
@@ -304,8 +305,9 @@ always @(*)begin
     lsu_op          = LSU_OP_LD;
     lsu_dtype       = LSU_DTYPE_U_BYTE;
 
+    jalr            = 1'b0;
+    jal             = 1'b0;
     branch          = 1'b0;
-    jump            = 1'b0;
     csr_en          = 1'b0;
     ecall_en        = 1'b0;
     ebreak_en       = 1'b0;
@@ -356,23 +358,23 @@ always @(*)begin
             end
             jalr_instr      :begin 
                 if( funct3[2:0] == 3'b0 )begin
-                    jump = 1'b1;
-                    adder_op_a_mux = ADDER_A_REG_RS1;
-                    adder_op_b_mux = ADDER_B_IMM_ITYPE;
+                    jalr            = 1'b1;
+                    adder_op_a_mux  = ADDER_A_REG_RS1;
+                    adder_op_b_mux  = ADDER_B_IMM_ITYPE;
                     src_a_mux       = SRC_A_JUMP;
                     src_b_mux       = SRC_B_TBT;
                     comp_op         = ALU_EQ;
                     adder_op        = ALU_SUB;
-                    rs1_rd_en = 1'b1;
-                    rd_wr_en  = 1'b1;
+                    rs1_rd_en       = 1'b1;
+                    rd_wr_en        = 1'b1;
                 end else begin
                     illegal_instr = 1'b1;
                 end
             end
             jal_instr       :begin 
-                jump = 1'b1;
-                adder_op_a_mux = ADDER_A_PC_ID;
-                adder_op_b_mux = ADDER_B_IMM_JTYPE;
+                jal             = 1'b1;
+                adder_op_a_mux  = ADDER_A_PC_ID;
+                adder_op_b_mux  = ADDER_B_IMM_JTYPE;
                 src_a_mux       = SRC_A_JUMP;
                 src_b_mux       = SRC_B_TBT;
                 comp_op         = ALU_EQ;

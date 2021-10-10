@@ -13,6 +13,7 @@ module mem_stage(
     input                       clk,
     input                       reset_n,
 
+    input                       iretire_mem,
     input logic [31:0]          pc_mem,
     input logic                 rd_wr_en_mem,
     input logic [TAG_WIDTH-1:0] rd_wr_tag_mem,
@@ -52,6 +53,7 @@ module mem_stage(
     output logic                lsu_err_wb,
     output logic                exc_taken_wb,
     output logic [31:0]         pc_wb,
+    output logic                iretire_wb,
 
     //LSU
     output logic                data_req,
@@ -170,6 +172,14 @@ always @(posedge clk or negedge reset_n)begin
         pc_wb               <= 32'h0;
     end else if(valid_mem)begin
         pc_wb               <= pc_mem;
+    end
+end
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        iretire_wb <= 1'b0;
+    end else begin
+        iretire_wb <= iretire_mem & valid_mem & (~flush_M);
     end
 end
 

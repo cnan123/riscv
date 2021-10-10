@@ -59,6 +59,7 @@ module id_stage(
     input [4:0]                 clr_dirty_wb_addr,
 
     output logic                compress_instr_ex,
+    output logic                jalr_ex,
     output logic                jump_ex,
     output logic                branch_ex,
     output logic                predict_taken_ex,
@@ -104,6 +105,7 @@ module id_stage(
     output logic                is_instr_acs_fault,
     output logic                is_interrupt,
 
+    output logic                iretire_ex,
     output logic [31:0]         pc_ex
 );
 
@@ -157,6 +159,8 @@ shift_op_e              shift_op_id;
 
 logic                   branch_id;
 logic                   jump_id;
+logic                   jalr_id;
+logic                   jal_id;
 
 logic                   lsu_en_id;
 lsu_op_e                lsu_op_id;
@@ -273,7 +277,7 @@ rv_adder jump_tg(
 );
 
 
-decoder decoder( /*AUTOINST*/
+decoder decoder(
 		.clk			    (clk),
 		.reset_n		    (reset_n),
 
@@ -296,7 +300,8 @@ decoder decoder( /*AUTOINST*/
         .shift_op           (shift_op_id           ),
 
 		.branch			    (branch_id),
-        .jump               (jump_id),
+        .jal                (jal_id),
+        .jalr               (jalr_id),
 
 		.lsu_en			    (lsu_en_id),
 		.lsu_op			    (lsu_op_id),
@@ -336,6 +341,7 @@ decoder decoder( /*AUTOINST*/
 		.illegal_instr		(illegal_instr)
 );
 
+assign jump_id  = jalr_id | jal_id;
 
 score_board #(
         .TAG_WIDTH          (TAG_WIDTH)
@@ -427,6 +433,14 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        iretire_ex <= 1'b0;
+    end else begin
+        iretire_ex <= valid_id & (~flush_D);
+    end
+end
+
 //pipeline
 assign stall_id = read_rf_busy | stall_D;
 
@@ -462,9 +476,10 @@ always @(posedge clk or negedge reset_n)begin
         src_c_ex                <= 32'h0;
 
         compress_instr_ex       <= 1'b0;
-        predict_taken_ex    <= 1'b0;
+        predict_taken_ex        <= 1'b0;
         branch_ex               <= 1'b0;
         jump_ex                 <= 1'b0;
+        jalr_ex                 <= 1'b0;
 
         rd_wr_en_ex             <= 1'b0;
         rd_wr_tag_ex            <= {TAG_WIDTH{1'b0}};
@@ -480,6 +495,7 @@ always @(posedge clk or negedge reset_n)begin
         csr_en_ex               <= 1'b0;
         branch_ex               <= 1'b0;
         jump_ex                 <= 1'b0;
+        jalr_ex                 <= 1'b0;
         rd_wr_en_ex             <= 1'b0;
         predict_taken_ex    <= 1'b0;
     end else if( ready_id )begin
@@ -511,6 +527,7 @@ always @(posedge clk or negedge reset_n)begin
         compress_instr_ex       <= compress_instr_id;
         branch_ex               <= branch_id;
         jump_ex                 <= jump_id;
+        jalr_ex                 <= jalr_id;
         predict_taken_ex        <= predict_taken_id;
 
         rd_wr_en_ex             <= rd_wr_en_id;

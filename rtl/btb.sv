@@ -9,9 +9,13 @@
 //
 //================================================================
 
-module btb(
+module btb#(
+    parameter ENTRY = 64
+)(
     input           clk,
     input           reset_n,
+
+    input           flush,
 
     input           btb_rd,
     input   [31:1]  pc_r,
@@ -32,16 +36,16 @@ module btb(
 /*AUTOLOGIC*/
 //////////////////////////////////////////////
 
-parameter TAG_DEPTH         = 1024;
-parameter TAG_ADDR_WIDTH    = $clog2(TAG_DEPTH);
+localparam TAG_DEPTH         = ENTRY;
+localparam TAG_ADDR_WIDTH    = $clog2(TAG_DEPTH);
 
-parameter GROUP_WIDTH       = 1;
-parameter INDEX_WIDTH       = 31-TAG_ADDR_WIDTH-GROUP_WIDTH;
+localparam GROUP_WIDTH       = 1;
+localparam INDEX_WIDTH       = 31-TAG_ADDR_WIDTH-GROUP_WIDTH;
 
-parameter TAG_DATA_WIDTH    = GROUP_WIDTH+INDEX_WIDTH+1;
+localparam TAG_DATA_WIDTH    = GROUP_WIDTH+INDEX_WIDTH+1;
 
-parameter DATA_ADDR_WIDTH   =  $clog2(TAG_DEPTH);
-parameter DATA_DATA_WIDTH   =  31;
+localparam DATA_ADDR_WIDTH   =  $clog2(TAG_DEPTH);
+localparam DATA_DATA_WIDTH   =  31;
 
 typedef struct packed {
     logic                   valid;
@@ -75,8 +79,11 @@ always @(posedge clk or negedge reset_n)begin
     if( !reset_n )begin
         rd_pick         <= 1'b0; 
         pc_r_hold[31:1] <= {30{1'b0}};
+    end else if(flush)begin
+        rd_pick         <= 1'b0; 
+        pc_r_hold[31:1] <= {30{1'b0}};
     end else if(btb_rd)begin
-        rd_pick         <= btb_rd; 
+        rd_pick         <= 1'b1; 
         pc_r_hold[31:1] <= pc_r[31:1];
     end
 end

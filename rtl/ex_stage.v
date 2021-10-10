@@ -22,11 +22,14 @@ module ex_stage#(
     input                       ready_mem,
     output logic                ready_ex,
 
+    input                       iretire_ex,
     input [31:0]                pc_id,
     input [31:0]                pc_ex,
     output logic [31:0]         pc_mem,
+    output logic                iretire_mem,
 
     //branch jump
+    input                       jalr_ex,
     input                       jump_ex,
     output logic [31:0]         jump_target_addr,
     output logic                jump_taken,
@@ -37,11 +40,16 @@ module ex_stage#(
     //update btb
     input                       compress_instr_ex,
     input                       predict_taken_ex,
-    output logic                prediction_fail,
+    output logic                predict_fail,
+
     output logic                btb_invalid,
     output logic                btb_update,
-    output logic [31:0]         branch_pc,
-    output logic [31:0]         branch_target,
+    output logic [31:0]         btb_pc,
+    output logic [31:0]         btb_target,
+
+    output logic                bht_updata,
+    output logic [31:0]         bht_pc,
+    output logic                bht_taken,
              
     //alu
     input logic                 sign_ex,
@@ -165,6 +173,8 @@ logic [31:0]    adder1_op_a;
 logic [31:0]    adder1_op_b;
 logic [31:0]    adder2_op_a;
 logic [31:0]    adder2_op_b;
+
+logic           jump_fail;
 
 //////////////////////////////////////////////
 //main code
@@ -315,25 +325,26 @@ div divider(/*AUTOINST*/
 //////////////////////////////////////////////
 //branch/jump
 //////////////////////////////////////////////
-assign compare_taken = compare_result & branch_ex;
+assign branch_taken         = branch_ex & predict_fail;
+assign branch_target_addr   = ( predict_taken_ex & ~compare_result ) ? adder2_result : adder1_result;
 
-assign branch_taken         = branch_ex & prediction_fail;
-assign branch_target_addr   = btb_invalid ? adder2_result : adder1_result;
-
-assign jump_taken           = jump_ex & prediction_fail;
+assign jump_taken           = jump_ex & (predict_fail | jump_fail);
 assign jump_target_addr     = src_a_ex;
 
-assign prediction_fail = ( 
-    ( predict_taken_ex  & ( (branch_ex & (~compare_result)) | ( (~compare_result) & jump_ex) ) ) | 
-    ( (~predict_taken_ex)   & branch_ex & compare_taken) |
-    ( (~predict_taken_ex)   & jump_ex ) 
-);
+assign bht_fail             = branch_ex & ( ( predict_taken_ex & ~compare_result ) | (~predict_taken_ex & compare_result) );
+assign btb_fail             = jalr_ex   & ( ( predict_taken_ex & ~compare_result ) | (~predict_taken_ex) );
+assign jump_fail            = jump_ex   & ~jalr_ex & ~predict_taken_ex;
 
-assign btb_update       = prediction_fail;
-assign btb_invalid      = ( branch_ex & predict_taken_ex & (~compare_taken));
-assign branch_pc        = pc_ex;
-assign branch_target    = jump_ex ? jump_target_addr : adder1_result;
-//assign branch_target    = adder1_result;
+assign predict_fail         = bht_fail | btb_fail;
+
+assign btb_update           = btb_fail & (~flush_E);
+assign btb_invalid          = 1'b0;
+assign btb_pc               = pc_ex;
+assign btb_target           = jump_target_addr;
+
+assign bht_updata           = branch_ex & (~flush_E);
+assign bht_pc               = pc_ex;
+assign bht_taken            = compare_result; //update sat-counter
 
 
 //////////////////////////////////////////////
@@ -438,6 +449,15 @@ always @(posedge clk or negedge reset_n)begin
         exc_taken_mem        <= exc_taken_ex | exc_ex;
     end
 end
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        iretire_mem <= 1'b0;
+    end else begin
+        iretire_mem <= iretire_ex & ready_ex & (~flush_E);
+    end
+end
+
 
 generate
 if( ILLEGAL_CSR_EN==1)begin:en_illegal_csr

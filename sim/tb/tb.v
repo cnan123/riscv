@@ -143,4 +143,18 @@ initial begin
     my_monitor.main;
 end
 
+`define IRETIRE tb.riscv_core.mem_stage.iretire_wb
+`define IRETIRE_PC tb.riscv_core.mem_stage.pc_wb
+
+integer exc_log;
+initial begin
+    exc_log = $fopen("exc.log");
+    while(1)begin
+        @(posedge clk);
+        if(`IRETIRE)begin
+            $fdisplay(exc_log, "PC: 0x%h ", `IRETIRE_PC);
+        end
+    end
+end
+
 endmodule

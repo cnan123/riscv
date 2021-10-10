@@ -38,3 +38,5 @@ run_sim.pl -isa -case sub
 run_sim.pl -isa -case sw
 run_sim.pl -isa -case xori
 run_sim.pl -isa -case xor
+
+run_sim.pl -isa -module rv32uc -case rvc

@@ -87,6 +87,7 @@ parameter SLEEP         = 2'h2;
 parameter WAKEUP        = 2'h3;
 
 logic           branch_jump;
+logic [31:0]    branch_jump_target;
 logic           exc_fetch;
 logic [31:0]    exc_fetch_pc;
 logic [1:0]     fsm_control_ns;
@@ -98,7 +99,7 @@ logic           interrupt_taken;
 
 
 //////////////////////////////////////////////
-//constorl fsm
+//control fsm
 //////////////////////////////////////////////
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
@@ -242,13 +243,14 @@ end
 //set next PC
 //////////////////////////////////////////////////////
 assign branch_jump = branch_taken | jump_taken;
+assign branch_jump_target = (
+    ( {32{branch_taken}}    & branch_target_addr[31:0]  ) |
+    ( {32{jump_taken}}      & jump_target_addr[31:0]    )
+);
+
 
 assign set_pc_valid = branch_taken | jump_taken | exc_fetch;
-assign set_pc[31:0] = (
-    ( {32{branch_taken}}    & branch_target_addr[31:0]  ) |
-    ( {32{jump_taken}}      & jump_target_addr[31:0]    ) |
-    ( {32{exc_fetch}}       & exc_fetch_pc[31:0]        ) 
-);
+assign set_pc[31:0] = exc_fetch ? exc_fetch_pc : branch_jump_target;
 
 //////////////////////////////////////////////////////
 //just need one cycle to flush pipeline

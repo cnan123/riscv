@@ -106,7 +106,7 @@ assign instr_gnt            = (
 assign instr_rdata[31:0]    = (
     ( {32{ibus_iram_pick}} & iram_rdata ) |
     ( {32{ibus_dram_pick}} & dram_rdata ) |
-    ( {32{ibus_none_pick}} & 32'hdeadbeef )
+    ( {32{ibus_none_pick}} & 32'h0 )
 );
 
 assign instr_valid = (
@@ -150,7 +150,7 @@ assign data_gnt            = (
 assign data_rdata[31:0]    = (
     ( {32{dbus_iram_pick}} & iram_rdata ) |
     ( {32{dbus_dram_pick}} & dram_rdata ) |
-    ( {32{dbus_none_pick}} & 32'hdeadbeef )
+    ( {32{dbus_none_pick}} & 32'h0 )
 );
 
 assign data_valid = (

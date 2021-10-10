@@ -10,7 +10,11 @@
 //================================================================
 
 module if_stage#(
-    parameter BRANCH_PREDICTION = 1'b0
+    parameter BRANCH_PREDICTION = 1'b0,
+    parameter ENA_BHT = 1,
+    parameter ENA_BTB = 1,
+    parameter ENA_RAS = 0,
+    parameter ENA_JUMP = 0
 )(
     input                   clk,
     input                   reset_n,
@@ -36,11 +40,14 @@ module if_stage#(
     output logic            instr_fetch_error,
 
     //branch prediction
-    input                   prediction_fail,
+    input                   predict_fail,
     input                   btb_invalid,
     input                   btb_update,
-    input [31:0]            branch_pc,
-    input [31:0]            branch_target,
+    input [31:0]            btb_pc,
+    input [31:0]            btb_target,
+    input                   bht_updata,
+    input [31:0]            bht_pc,
+    input                   bht_taken,
     
     //instruction interface
     output logic            instr_req,
@@ -51,6 +58,10 @@ module if_stage#(
     input                   instr_valid
 );
 
+localparam IDLE      = 2'd0;
+localparam WAIT_GNT  = 2'd1;
+localparam WAIT_DATA = 2'd2;
+localparam FLUSH     = 2'd3;
 
 // Local Variables:
 // verilog-library-directories:(".")
@@ -59,58 +70,71 @@ module if_stage#(
 //////////////////////////////////////////////
 /*AUTOLOGIC*/
 // Beginning of automatic wires (for undeclared instantiated-module outputs)
-logic			btb_hit;		// From btb of btb.v
 logic			illegal_instr_o;	// From compress_decoder of compress_decoder.v
-logic [31:0]		instruction_if;		// From compress_decoder of compress_decoder.v
-logic [31:1]		target_pc_r;		// From btb of btb.v
+logic [31:0]		insn_new;		// From compress_decoder of compress_decoder.v
+logic [31:0]		predict_pc_new;		// From branch_predict of branch_predict.v
+logic			predict_taken_new;	// From branch_predict of branch_predict.v
 // End of automatics
 //////////////////////////////////////////////
-logic [31:0]    instruction;
-logic           instruction_value;
-
-logic           is_compress_intr;
-
 logic [31:0]    next_pc;
 logic           is_boot;
+
+logic           ready_if;
+logic           pipe_busy;
+logic           pipe_ready;
+
+logic [31:0]    insn_if;
+logic           insn_value_if;
+logic           insn_compress_if;
+logic           insn_err_if;
+logic           predict_taken_if;
+logic [31:0]    predict_pc_if;
+
+logic [31:0]    insn_q;
+logic           insn_value_q;
+logic           insn_compress_q;
+logic           insn_err_q;
+logic           predict_taken_q;
+logic [31:0]    predict_pc_q;
+
+logic           fetch_en;
 logic           pc_unalign;
+logic           read_from_fifo;
+logic           read_from_hold;
 logic           rdata_value;
 logic           rdata_err;
 logic [32:0]    rdata;
-logic [31:0]    instruction_temp;
+logic           fifo_pop;
+logic           bypass;
+
+logic [31:0]    instruction;
+logic           instruction_value;
+logic           instruction_err;
+
 logic [15:0]    hold_rdata;
 logic           hold_rdata_value;
 logic           hold_rdata_err;
-logic           fetch_from_mem;
-logic           fetch_en;
-logic           fifo_pop;
-logic           fifo_clear;
 logic           hold_data_is_compress;
-logic           read_from_fifo;
 
+logic           insn_compress_new;
+logic           insn_value_new;
+logic           insn_err_new;
+
+logic [31:0]    set_instr_addr;
+logic [31:0]    instr_prefetch_addr;
 logic [31:0]    next_instr_addr;
 logic [1:0]     fsm_fetch_cs;
 logic [1:0]     fsm_fetch_ns;
-logic [31:0]    set_instr_addr;
-logic [31:0]    instr_prefetch_addr;
 
 logic           fifo_push;
 logic [32:0]    fifo_push_data;
-
-logic           branch_prediction_taken;
-logic [31:0]    branch_prediction_pc;
 
 logic           fifo_full;
 logic           fifo_almost_full;
 logic [32:0]    fifo_rdata;
 logic           fifo_rdata_valid;
 logic           fifo_empty;
-
-logic           ready_if;
-
-logic [31:1]    pc_r;
-logic           btb_rd;
-logic [1:0]     fsm_prediction_ns;
-logic [1:0]     fsm_prediction_cs;
+logic           fifo_clear;
 
 //////////////////////////////////////////////
 //main code
@@ -119,11 +143,11 @@ logic [1:0]     fsm_prediction_cs;
 always @(*)begin
     if(set_pc_valid)begin
         next_pc = set_pc;
-    end else if(branch_prediction_taken)begin
-        next_pc = branch_prediction_pc;        
-    end else if( instruction_value & is_compress_intr )begin
+    end else if(predict_taken_if)begin
+        next_pc = predict_pc_if;        
+    end else if( insn_value_if & insn_compress_if )begin
         next_pc = pc_if + 2;
-    end else if(instruction_value )begin
+    end else if(insn_value_if )begin
         next_pc = pc_if + 4;
     end else begin
         next_pc = pc_if;
@@ -154,20 +178,6 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
-assign pc_unalign = pc_if[1];
-
-
-assign rdata_value  = fifo_pop ? 1'b1 : instr_valid;
-assign rdata_err    = rdata[32];
-assign rdata[32:0]  = fifo_pop ? fifo_rdata[32:0] : {instr_err,instr_rdata};
-
-assign instruction_temp = pc_unalign ? {rdata[15:0],hold_rdata[15:0]} : rdata;
-assign instruction[31:16] = is_compress_intr ? 16'h0 : instruction_temp[31:16];
-assign instruction[15:0] = instruction_temp[15:0];
-
-assign instruction_value = pc_unalign ? hold_data_is_compress | (rdata_value && hold_rdata_value) : rdata_value & fetch_en;
-assign instruction_err = pc_unalign ? ( (hold_rdata_value & hold_rdata_err) | (rdata_value & rdata_err) ) : (rdata_value & rdata_err); 
-
 
 //////////////////////////////////////////////////////////////////////
 //pipeline
@@ -189,70 +199,161 @@ always @(posedge clk or negedge reset_n)begin
         predict_taken_id        <= 1'b0;
         predict_pc_id           <= 32'b0;
     end else if(ready_if) begin
-        instr_payload_id        <= instruction_if;
-        instr_value_id          <= instruction_value;
-        compress_instr_id       <= is_compress_intr;
-        instr_fetch_error       <= instruction_err;
-        predict_taken_id        <= branch_prediction_taken;
-        predict_pc_id           <= branch_prediction_pc;
+        instr_payload_id        <= insn_if;
+        instr_value_id          <= insn_value_if;
+        compress_instr_id       <= insn_compress_if;
+        instr_fetch_error       <= insn_err_if;
+        predict_taken_id        <= predict_taken_if;
+        predict_pc_id           <= predict_pc_if;
     end
 end
+
+
+//////////////////////////////////////////////////////////////////////
+always @(posedge clk or negedge reset_n)begin
+    if(~reset_n)begin
+        pipe_busy <= 1'b0;
+    end else begin
+        pipe_busy <= ~ready_if;
+    end
+end 
+
+assign insn_if          = pipe_busy ? insn_q : insn_new;
+assign insn_value_if    = pipe_busy ? insn_value_q : insn_value_new;
+assign insn_compress_if = pipe_busy ? insn_compress_q : insn_compress_new;
+assign insn_err_if      = pipe_busy ? insn_err_q : insn_err_new;
+assign predict_taken_if = pipe_busy ? predict_taken_q : predict_taken_new;
+assign predict_pc_if    = pipe_busy ? predict_pc_q : predict_pc_new;
+
+
+assign pipe_ready = ~pipe_busy;
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
-        hold_rdata <= 16'h0;
-        hold_rdata_value <= 1'b0;
-        hold_rdata_err <= 1'b0;
-    end else if( fifo_clear )begin
-        hold_rdata <= 16'h0;
-        hold_rdata_value <= 1'b0;
-        hold_rdata_err <= 1'b0;
-    end else if( ~ready_if )begin
-        hold_rdata <= hold_rdata;
-        hold_rdata_value <= hold_rdata_value;
-        hold_rdata_err <= hold_rdata_err;
-    end else if(fetch_en & ( (pc_unalign & rdata_value) | is_compress_intr ))begin
-        hold_rdata <= rdata[31:16];
-        hold_rdata_value <= 1'b1;
-        hold_rdata_err <= rdata[32];
-    end else begin
-        hold_rdata <= hold_rdata;
-        hold_rdata_value <= 1'b0;
-        hold_rdata_err <= 1'b0;
+        insn_q          <= 32'h0;
+        insn_value_q    <= 1'b0;
+        insn_compress_q <= 1'b0;
+        insn_err_q      <= 1'b0;
+        predict_taken_q <= 1'b0;
+        predict_pc_q    <= 32'h0;
+    end else if(set_pc_valid)begin
+        insn_q          <= 32'h0;
+        insn_value_q    <= 1'b0;
+        insn_compress_q <= 1'b0;
+        insn_err_q      <= 1'b0;
+        predict_taken_q <= 1'b0;
+        predict_pc_q    <= 32'h0;
+    end else if(~pipe_busy)begin
+        insn_q          <= insn_new;
+        insn_value_q    <= insn_value_new;
+        insn_compress_q <= insn_compress_new;
+        insn_err_q      <= insn_err_new;
+        predict_taken_q <= predict_taken_new;
+        predict_pc_q    <= predict_pc_new;
     end
 end
 
-assign fetch_en = is_boot && (set_pc_valid | ready_if);
-
-assign hold_data_is_compress = (hold_rdata[1:0]!=2'b11) & hold_rdata_value & pc_unalign;
-assign fifo_pop = fetch_en && (~fifo_empty) && (~hold_data_is_compress);
-assign fifo_clear = set_pc_valid | branch_prediction_taken;
-
-assign read_from_fifo = fifo_pop | hold_data_is_compress | (is_compress_intr & pc_unalign);
 
 /////////////////////////////////////////////////
 //fetch control
 /////////////////////////////////////////////////
+assign fetch_en = is_boot & ( set_pc_valid | pipe_ready );
+
+assign pc_unalign   = pc_if[1];
+
+assign read_from_fifo   =  (~fifo_empty) & fetch_en;
+assign read_from_hold    = hold_data_is_compress & fetch_en & hold_rdata_value;
+
+assign rdata[32:0]  = ( read_from_fifo | read_from_hold ) ? fifo_rdata[32:0] : {instr_err,instr_rdata};
+assign rdata_value  = ( read_from_fifo | read_from_hold ) ? 1'b1 : ( instr_valid & (fsm_fetch_cs != FLUSH) );
+assign rdata_err    = rdata[32];
+
+assign hold_data_is_compress    = (hold_rdata[1:0]!=2'b11) & hold_rdata_value & pc_unalign;
+assign fifo_pop                 = read_from_fifo & (~read_from_hold);
+assign fifo_clear               = set_pc_valid | predict_taken_new;
+
+assign bypass                   = ~( read_from_fifo | read_from_hold | (insn_compress_new & pc_unalign) | (~fetch_en) );
+
+always_comb begin
+    instruction         = 32'h0;
+    instruction_value   = 1'b0;
+    instruction_err     = 1'b0;
+
+    if(fetch_en)begin
+        if( pc_unalign )begin
+            instruction[15:0]   = hold_rdata[15:0];
+            if(hold_data_is_compress & hold_rdata_value)begin
+                instruction[31:16]  = 16'h0;
+                instruction_value   = 1'b1;
+                instruction_err     = hold_rdata_err;
+            end else begin
+                instruction[31:16]  = rdata[15:0];
+                instruction_value   = rdata_value & hold_rdata_value;
+                instruction_err     = rdata_err | hold_rdata_err;
+            end
+        end else begin
+            instruction[15:0]   = rdata[15:0];
+            instruction_value   = rdata_value;
+            instruction_err     = rdata_err;
+            if(insn_compress_new)begin
+                instruction[31:16] = 16'h0;
+            end else begin
+                instruction[31:16]  = rdata[31:16];
+            end
+        end
+    end else begin
+        instruction_value = 1'b0;
+    end
+end
+
+
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        hold_rdata          <= 16'h0;
+        hold_rdata_value    <= 1'b0;
+        hold_rdata_err      <= 1'b0;
+    end else if( flush_F | predict_taken_if )begin
+        hold_rdata          <= 16'h0;
+        hold_rdata_value    <= 1'b0;
+        hold_rdata_err      <= 1'b0;
+    end else if( ~fetch_en )begin
+        hold_rdata          <= hold_rdata;
+        hold_rdata_value    <= hold_rdata_value;
+        hold_rdata_err      <= hold_rdata_err;
+    end else if(fetch_en & ( (pc_unalign & rdata_value) | insn_compress_new ))begin
+        hold_rdata          <= rdata[31:16];
+        hold_rdata_value    <= 1'b1;
+        hold_rdata_err      <= rdata[32];
+    end else begin
+        hold_rdata          <= hold_rdata;
+        hold_rdata_value    <= 1'b0;
+        hold_rdata_err      <= 1'b0;
+    end
+end
+
 
 /////////////////////////////////////////////////
 //compress instruction decoder
 /////////////////////////////////////////////////
-assign is_compress_intr = ( instruction[1:0] != 2'b11 ) & instruction_value;
+assign insn_compress_new = ( instruction[1:0] != 2'b11 ) & instruction_value;
+
 
 /*compress_decoder AUTO_TEMPLATE(
     .instr_i (instruction[]),
     .instr_valid    (instruction_value),
-    .instr_o    (instruction_if[]),
+    .instr_o    (insn_new[]),
 );*/
 compress_decoder compress_decoder(
     /*AUTOINST*/
 				  // Outputs
-				  .instr_o		(instruction_if[31:0]), // Templated
+				  .instr_o		(insn_new[31:0]), // Templated
 				  .illegal_instr_o	(illegal_instr_o),
 				  // Inputs
 				  .instr_valid		(instruction_value), // Templated
 				  .instr_i		(instruction[31:0])); // Templated
 
+assign insn_value_new   = instruction_value;
+assign insn_err_new     = instruction_err;
 
 /////////////////////////////////////////////////
 //prefetch fifo
@@ -286,15 +387,8 @@ sync_fifo #(
 /////////////////////////////////////////////////
 //fetch from program memroy
 /////////////////////////////////////////////////
-localparam IDLE      = 2'd0;
-localparam WAIT_GNT  = 2'd1;
-localparam WAIT_DATA = 2'd2;
-localparam FLUSH     = 2'd3;
 
-assign set_instr_addr = (
-        ( {32{set_pc_valid              }} & set_pc ) |
-        ( {32{branch_prediction_taken   }} & branch_prediction_pc )
-);
+assign set_instr_addr   = ( set_pc_valid ? set_pc : predict_pc_new );
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
@@ -402,8 +496,8 @@ always @(*)begin
     endcase
 end
 
-assign fifo_push = ( read_from_fifo | (!fetch_en) ) & instr_valid & (fsm_fetch_cs==WAIT_DATA) ;
-assign fifo_push_data = {instr_err, instr_rdata};
+assign fifo_push        = ( ~bypass ) & instr_valid & (fsm_fetch_cs==WAIT_DATA) ;
+assign fifo_push_data   = {instr_err, instr_rdata};
 
 
 /////////////////////////////////////////////////
@@ -411,82 +505,49 @@ assign fifo_push_data = {instr_err, instr_rdata};
 /////////////////////////////////////////////////
 generate
 if(BRANCH_PREDICTION == 1)begin: gen_branch_prediction
-localparam PREDICTION_IDLE = 2'b00;
-localparam PREDICTION_DATA = 2'b01;
-localparam PREDICTION_HOLD = 2'b10;
-
-assign btb_rd   = ( (ready_if & instruction_value) | set_pc_valid ) & (~prediction_fail);
-assign pc_r     = next_pc[31:1];
-
-always @(posedge clk or negedge reset_n)begin
-    if(!reset_n)begin
-        fsm_prediction_cs <= PREDICTION_IDLE;
-    end else begin
-        fsm_prediction_cs <= fsm_prediction_ns;
-    end
-end
-
-always @(*)begin
-    fsm_prediction_ns = fsm_prediction_cs;
-    case(fsm_prediction_cs)
-        PREDICTION_IDLE: begin
-            if(btb_rd)begin
-                fsm_prediction_ns = PREDICTION_DATA;
-            end
-        end
-        PREDICTION_DATA:begin
-            if( btb_hit )begin
-                if(instruction_value)begin
-                    fsm_prediction_ns = btb_rd ? PREDICTION_DATA : PREDICTION_IDLE;
-                end else begin
-                    fsm_prediction_ns = PREDICTION_HOLD;
-                end
-            end else begin
-                fsm_prediction_ns = btb_rd ? PREDICTION_DATA : PREDICTION_IDLE;
-            end
-        end
-        PREDICTION_HOLD:begin
-            if(instruction_value)begin
-                fsm_prediction_ns = btb_rd ? PREDICTION_DATA : PREDICTION_IDLE;
-            end
-        end
-        default:;
-    endcase
-end
-
-assign prediction_taken = (~set_pc_valid) & instruction_value & (
-    ( (fsm_prediction_cs==PREDICTION_DATA) & btb_hit ) | 
-    ( fsm_prediction_cs == PREDICTION_HOLD )
-);
-
-assign branch_prediction_pc = { target_pc_r, 1'b0 };
-
-
 /*
-btb AUTO_TEMPLATE(
-    .btb_wr (btb_update),
-    .btb_invalid    (btb_invalid),
-    .pc_w   (branch_pc[]),
-    .target_pc_w    (branch_target[]),
+branch_predict AUTO_TEMPLATE(
+	.predict_en		(fetch_en),
+    .fetch_pc_n (next_pc[]),
+    .fetch_pc   (pc_if[]),
+    .fetch_rdata    (instruction[]),
+    .fetch_valid    (instruction_value),
+    .predict_taken	(predict_taken_new),
+    .predict_pc		(predict_pc_new[]),
 );
 */
-btb btb(/*AUTOINST*/
-	// Outputs
-	.btb_hit			(btb_hit),
-	.target_pc_r			(target_pc_r[31:1]),
-	// Inputs
-	.clk				(clk),
-	.reset_n			(reset_n),
-	.btb_rd				(btb_rd),
-	.pc_r				(pc_r[31:1]),
-	.btb_wr				(btb_update),		 // Templated
-	.btb_invalid			(btb_invalid),		 // Templated
-	.pc_w				(branch_pc[31:1]),	 // Templated
-	.target_pc_w			(branch_target[31:0]));	 // Templated
+branch_predict #(
+/*AUTOINSTPARAM*/
+		 // Parameters
+		 .ENA_BHT		(ENA_BHT),
+		 .ENA_BTB		(ENA_BTB),
+		 .ENA_JUMP		(ENA_JUMP),
+		 .ENA_RAS		(ENA_RAS)) branch_predict(
+/*AUTOINST*/
+								  // Outputs
+								  .predict_taken	(predict_taken_new), // Templated
+								  .predict_pc		(predict_pc_new[31:0]), // Templated
+								  // Inputs
+								  .clk			(clk),
+								  .reset_n		(reset_n),
+								  .predict_en		(fetch_en),	 // Templated
+								  .fetch_pc_n		(next_pc[31:0]), // Templated
+								  .fetch_pc		(pc_if[31:0]),	 // Templated
+								  .fetch_rdata		(instruction[31:0]), // Templated
+								  .fetch_valid		(instruction_value), // Templated
+								  .predict_fail		(predict_fail),
+								  .bht_updata		(bht_updata),
+								  .bht_pc		(bht_pc[31:0]),
+								  .bht_taken		(bht_taken),
+								  .btb_invalid		(btb_invalid),
+								  .btb_update		(btb_update),
+								  .btb_pc		(btb_pc[31:0]),
+								  .btb_target		(btb_target[31:0]));
+
 
 end else begin: gen_no_branch_prediction
-    assign branch_prediction_taken = 1'b0;
-    assign branch_prediction_pc = 32'h0;
+    assign predict_taken_new = 1'b0;
+    assign predict_pc_new = 32'h0;
 end
 endgenerate
 

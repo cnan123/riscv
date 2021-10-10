@@ -11,7 +11,11 @@
 
 module riscv_core#(
     parameter ILLEGAL_CSR_EN = 1'b0,
-    parameter BRANCH_PREDICTION = 1'b1
+    parameter BRANCH_PREDICTION = 1'b1,
+    parameter ENA_BHT = 1,
+    parameter ENA_BTB = 1,
+    parameter ENA_RAS = 0,
+    parameter ENA_JUMP = 1
 )(
     input           clk,
     input           reset_n,
@@ -53,12 +57,15 @@ import riscv_pkg::*;
 /*AUTOLOGIC*/
 // Beginning of automatic wires (for undeclared instantiated-module outputs)
 logic			adder_en_ex;		// From id_stage of id_stage.v
+logic [31:0]		bht_pc;			// From ex_stage of ex_stage.v
+logic			bht_taken;		// From ex_stage of ex_stage.v
+logic			bht_updata;		// From ex_stage of ex_stage.v
 logic			branch_ex;		// From id_stage of id_stage.v
-logic [31:0]		branch_pc;		// From ex_stage of ex_stage.v
 logic			branch_taken;		// From ex_stage of ex_stage.v
-logic [31:0]		branch_target;		// From ex_stage of ex_stage.v
 logic [31:0]		branch_target_addr;	// From ex_stage of ex_stage.v
 logic			btb_invalid;		// From ex_stage of ex_stage.v
+logic [31:0]		btb_pc;			// From ex_stage of ex_stage.v
+logic [31:0]		btb_target;		// From ex_stage of ex_stage.v
 logic			btb_update;		// From ex_stage of ex_stage.v
 logic [4:0]		clr_dirty_ex_addr;	// From ex_stage of ex_stage.v
 logic			clr_dirty_ex_en;	// From ex_stage of ex_stage.v
@@ -95,6 +102,9 @@ logic [31:0]		forward_mem_wdata;	// From mem_stage of mem_stage.v
 logic			instr_fetch_error;	// From if_stage of if_stage.v
 logic [31:0]		instr_payload_id;	// From if_stage of if_stage.v
 logic			instr_value_id;		// From if_stage of if_stage.v
+logic			iretire_ex;		// From id_stage of id_stage.v
+logic			iretire_mem;		// From ex_stage of ex_stage.v
+logic			iretire_wb;		// From mem_stage of mem_stage.v
 logic			irq_ack;		// From controller of controller.v
 logic			is_ebreak;		// From id_stage of id_stage.v
 logic			is_ecall;		// From id_stage of id_stage.v
@@ -109,6 +119,7 @@ logic			is_mret;		// From id_stage of id_stage.v
 logic			is_sret;		// From id_stage of id_stage.v
 logic			is_uret;		// From id_stage of id_stage.v
 logic			is_wfi;			// From id_stage of id_stage.v
+logic			jalr_ex;		// From id_stage of id_stage.v
 logic			jump_ex;		// From id_stage of id_stage.v
 logic			jump_taken;		// From ex_stage of ex_stage.v
 logic [31:0]		jump_target_addr;	// From ex_stage of ex_stage.v
@@ -133,10 +144,10 @@ logic [31:0]		pc_id;			// From if_stage of if_stage.v
 logic [31:0]		pc_if;			// From if_stage of if_stage.v
 logic [31:0]		pc_mem;			// From ex_stage of ex_stage.v
 logic [31:0]		pc_wb;			// From mem_stage of mem_stage.v
+logic			predict_fail;		// From ex_stage of ex_stage.v
 logic [31:0]		predict_pc_id;		// From if_stage of if_stage.v
 logic			predict_taken_ex;	// From id_stage of id_stage.v
 logic			predict_taken_id;	// From if_stage of if_stage.v
-logic			prediction_fail;	// From ex_stage of ex_stage.v
 logic [4:0]		rd_wr_addr_ex;		// From id_stage of id_stage.v
 logic [4:0]		rd_wr_addr_mem;		// From ex_stage of ex_stage.v
 logic [4:0]		rd_wr_addr_wb;		// From mem_stage of mem_stage.v
@@ -201,47 +212,50 @@ privilege_e         privilege_mode;
 /* if_stage #(
     .BRANCH_PREDICTION  (BRANCH_PREDICTION)
 )AUTO_TEMPLATE(
-    .pc_id_ready     (id_stage_ready),
-		  .flush_if_id		(flush_if),
-    .id_instruction		(instruction[31:0]),
-    .id_instruction_value	(instruction_value),
 );
 */
 if_stage #(
     /*AUTOINSTPARAM*/
 	   // Parameters
-	   .BRANCH_PREDICTION		(BRANCH_PREDICTION))if_stage(
+	   .BRANCH_PREDICTION		(BRANCH_PREDICTION),
+	   .ENA_BHT			(ENA_BHT),
+	   .ENA_BTB			(ENA_BTB),
+	   .ENA_RAS			(ENA_RAS),
+	   .ENA_JUMP			(ENA_JUMP))if_stage(
     /*AUTOINST*/
-								     // Outputs
-								     .pc_if		(pc_if[31:0]),
-								     .pc_id		(pc_id[31:0]),
-								     .instr_payload_id	(instr_payload_id[31:0]),
-								     .instr_value_id	(instr_value_id),
-								     .compress_instr_id	(compress_instr_id),
-								     .predict_taken_id	(predict_taken_id),
-								     .predict_pc_id	(predict_pc_id[31:0]),
-								     .instr_fetch_error	(instr_fetch_error),
-								     .instr_req		(instr_req),
-								     .instr_addr	(instr_addr[31:0]),
-								     // Inputs
-								     .clk		(clk),
-								     .reset_n		(reset_n),
-								     .boot_addr		(boot_addr[31:0]),
-								     .fetch_enable	(fetch_enable),
-								     .flush_F		(flush_F),
-								     .stall_F		(stall_F),
-								     .ready_id		(ready_id),
-								     .set_pc_valid	(set_pc_valid),
-								     .set_pc		(set_pc[31:0]),
-								     .prediction_fail	(prediction_fail),
-								     .btb_invalid	(btb_invalid),
-								     .btb_update	(btb_update),
-								     .branch_pc		(branch_pc[31:0]),
-								     .branch_target	(branch_target[31:0]),
-								     .instr_gnt		(instr_gnt),
-								     .instr_rdata	(instr_rdata[31:0]),
-								     .instr_err		(instr_err),
-								     .instr_valid	(instr_valid));
+							    // Outputs
+							    .pc_if		(pc_if[31:0]),
+							    .pc_id		(pc_id[31:0]),
+							    .instr_payload_id	(instr_payload_id[31:0]),
+							    .instr_value_id	(instr_value_id),
+							    .compress_instr_id	(compress_instr_id),
+							    .predict_taken_id	(predict_taken_id),
+							    .predict_pc_id	(predict_pc_id[31:0]),
+							    .instr_fetch_error	(instr_fetch_error),
+							    .instr_req		(instr_req),
+							    .instr_addr		(instr_addr[31:0]),
+							    // Inputs
+							    .clk		(clk),
+							    .reset_n		(reset_n),
+							    .boot_addr		(boot_addr[31:0]),
+							    .fetch_enable	(fetch_enable),
+							    .flush_F		(flush_F),
+							    .stall_F		(stall_F),
+							    .ready_id		(ready_id),
+							    .set_pc_valid	(set_pc_valid),
+							    .set_pc		(set_pc[31:0]),
+							    .predict_fail	(predict_fail),
+							    .btb_invalid	(btb_invalid),
+							    .btb_update		(btb_update),
+							    .btb_pc		(btb_pc[31:0]),
+							    .btb_target		(btb_target[31:0]),
+							    .bht_updata		(bht_updata),
+							    .bht_pc		(bht_pc[31:0]),
+							    .bht_taken		(bht_taken),
+							    .instr_gnt		(instr_gnt),
+							    .instr_rdata	(instr_rdata[31:0]),
+							    .instr_err		(instr_err),
+							    .instr_valid	(instr_valid));
 
 /* id_stage AUTO_TEMPLATE(
     .instr_payload  (instr_payload_id),
@@ -265,6 +279,7 @@ id_stage id_stage(
 		  // Outputs
 		  .ready_id		(ready_id),
 		  .compress_instr_ex	(compress_instr_ex),
+		  .jalr_ex		(jalr_ex),
 		  .jump_ex		(jump_ex),
 		  .branch_ex		(branch_ex),
 		  .predict_taken_ex	(predict_taken_ex),
@@ -296,6 +311,7 @@ id_stage id_stage(
 		  .is_illegal_instr	(is_illegal_instr),
 		  .is_instr_acs_fault	(is_instr_acs_fault),
 		  .is_interrupt		(is_interrupt),
+		  .iretire_ex		(iretire_ex),
 		  .pc_ex		(pc_ex[31:0]),
 		  // Inputs
 		  .clk			(clk),
@@ -304,7 +320,7 @@ id_stage id_stage(
 		  .instr_payload	(instr_payload_id),	 // Templated
 		  .instr_value		(instr_value_id),	 // Templated
 		  .predict_taken_id	(predict_taken_id),
-		  .predict_pc_id	(predict_pc_id),
+		  .predict_pc_id	(predict_pc_id[31:0]),
 		  .compress_instr_id	(compress_instr_id),
 		  .instr_fetch_error	(instr_fetch_error),
 		  .stall_D		(stall_D),
@@ -359,15 +375,19 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  // Outputs
 								  .ready_ex		(ready_ex),
 								  .pc_mem		(pc_mem[31:0]),
+								  .iretire_mem		(iretire_mem),
 								  .jump_target_addr	(jump_target_addr[31:0]),
 								  .jump_taken		(jump_taken),
 								  .branch_target_addr	(branch_target_addr[31:0]),
 								  .branch_taken		(branch_taken),
-								  .prediction_fail	(prediction_fail),
+								  .predict_fail		(predict_fail),
 								  .btb_invalid		(btb_invalid),
 								  .btb_update		(btb_update),
-								  .branch_pc		(branch_pc[31:0]),
-								  .branch_target	(branch_target[31:0]),
+								  .btb_pc		(btb_pc[31:0]),
+								  .btb_target		(btb_target[31:0]),
+								  .bht_updata		(bht_updata),
+								  .bht_pc		(bht_pc[31:0]),
+								  .bht_taken		(bht_taken),
 								  .lsu_en_mem		(lsu_en_mem),
 								  .lsu_addr_mem		(lsu_addr_mem[31:0]),
 								  .lsu_wdata_mem	(lsu_wdata_mem[31:0]),
@@ -393,8 +413,10 @@ ex_stage #( /*AUTOINSTPARAM*/
 								  .stall_E		(stall_E),
 								  .flush_E		(flush_E),
 								  .ready_mem		(ready_mem),
+								  .iretire_ex		(iretire_ex),
 								  .pc_id		(pc_id[31:0]),
 								  .pc_ex		(pc_ex[31:0]),
+								  .jalr_ex		(jalr_ex),
 								  .jump_ex		(jump_ex),
 								  .branch_ex		(branch_ex),
 								  .compress_instr_ex	(compress_instr_ex),
@@ -453,6 +475,7 @@ mem_stage mem_stage(
 		    .lsu_err_wb		(lsu_err_wb),
 		    .exc_taken_wb	(exc_taken_wb),
 		    .pc_wb		(pc_wb[31:0]),
+		    .iretire_wb		(iretire_wb),
 		    .data_req		(data_req),
 		    .data_wr		(data_wr),
 		    .data_addr		(data_addr[31:0]),
@@ -461,6 +484,7 @@ mem_stage mem_stage(
 		    // Inputs
 		    .clk		(clk),
 		    .reset_n		(reset_n),
+		    .iretire_mem	(iretire_mem),
 		    .pc_mem		(pc_mem[31:0]),
 		    .rd_wr_en_mem	(rd_wr_en_mem),
 		    .rd_wr_tag_mem	(rd_wr_tag_mem[TAG_WIDTH-1:0]),
