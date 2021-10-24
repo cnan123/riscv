@@ -291,10 +291,7 @@ localparam WAIT_GNT  = 2'd1;
 localparam WAIT_DATA = 2'd2;
 localparam FLUSH     = 2'd3;
 
-assign set_instr_addr = (
-        ( {32{set_pc_valid              }} & set_pc ) |
-        ( {32{branch_prediction_taken   }} & branch_prediction_pc )
-);
+assign set_instr_addr = set_pc_valid ? set_pc : branch_prediction_pc;
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
@@ -454,7 +451,7 @@ always @(*)begin
     endcase
 end
 
-assign prediction_taken = (~set_pc_valid) & instruction_value & (
+assign branch_prediction_taken = (~set_pc_valid) & instruction_value & (
     ( (fsm_prediction_cs==PREDICTION_DATA) & btb_hit ) | 
     ( fsm_prediction_cs == PREDICTION_HOLD )
 );
