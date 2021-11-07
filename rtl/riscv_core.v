@@ -11,7 +11,7 @@
 
 module riscv_core#(
     parameter ILLEGAL_CSR_EN = 1'b0,
-    parameter BRANCH_PREDICTION = 1'b1,
+    parameter BRANCH_PREDICTION = 1'b0,
     parameter ENA_BHT = 1,
     parameter ENA_BTB = 1,
     parameter ENA_RAS = 0,

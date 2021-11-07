@@ -3,6 +3,7 @@
 
 ${PROJ_PATH}/sim/tb/sram.sv
 ${PROJ_PATH}/sim/tb/tb_memory.v
+${PROJ_PATH}/sim/tb/memory.sv
 ${PROJ_PATH}/sim/tb/arbiter.v
 ${PROJ_PATH}/sim/tb/tb.v
 

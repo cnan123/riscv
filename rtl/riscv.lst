@@ -5,6 +5,7 @@ ${PROJ_PATH}/rtl/compress_decoder.sv
 ${PROJ_PATH}/rtl/mem_wrap.sv
 ${PROJ_PATH}/rtl/btb.sv
 ${PROJ_PATH}/rtl/bht.sv
+${PROJ_PATH}/rtl/prefetch_fifo.sv
 ${PROJ_PATH}/rtl/branch_predict.sv
 ${PROJ_PATH}/rtl/if_stage.sv
 ${PROJ_PATH}/rtl/sync_fifo.v

@@ -78,8 +78,8 @@ if( ! defined($coremark) ){
 
 if( ! (-e "$case.hex") ){ die "$case.hex not exist"; }
 
-system("dump_hex.pl -base 0x0 -length 0x10000 -i $case.hex -o program_instr.dat");
-system("dump_hex.pl -base 0x10000 -length 0x10000 -i $case.hex -o program_data.dat");
+system("dump_hex.pl -base 0x0 -length 0x20000 -i $case.hex -o program_I.dat");
+system("cp program_I.dat program_D.dat");
 
 #================================================================
 #vcs compile

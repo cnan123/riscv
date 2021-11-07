@@ -75,11 +75,11 @@ initial begin
     `endif
 end
 
-`define PATH_IRAM_MEM tb.tb_memory.iram
-`define PATH_DRAM_MEM tb.tb_memory.dram
+`define PATH_IRAM_MEM tb.tb_memory.iram.sram
+`define PATH_DRAM_MEM tb.tb_memory.dram.sram
 initial begin
-    $readmemh("./program_instr.dat",`PATH_IRAM_MEM.MEM);
-    $readmemh("./program_data.dat",`PATH_DRAM_MEM.MEM);
+    $readmemh("./program_I.dat",`PATH_IRAM_MEM.MEM);
+    $readmemh("./program_D.dat",`PATH_DRAM_MEM.MEM);
 end
 
 assign boot_addr = 32'h0;

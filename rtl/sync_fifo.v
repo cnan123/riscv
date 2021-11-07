@@ -101,7 +101,7 @@ for(genvar i = 0; i < DEPTH; i++) begin
 end
 
 assign rd_data = fifo_data_q[0];
-assign rd_data_valid = pop;
+assign rd_data_valid = valid[0];
 
 assign fifo_full = (&valid[DEPTH-1:0]);
 assign fifo_almost_full = (&valid[DEPTH-2:0]);
