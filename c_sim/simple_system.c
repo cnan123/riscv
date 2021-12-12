@@ -55,7 +55,8 @@ void exception_enable( void *handle, void * arg )
 void exception_handle ( uint32_t mcause, uint32_t mepc )
 {
     printinfo("enter exception handle!!!\n",1);
-    printinfo("mcause is %h\n",1);
+    printinfo("mcause is %h\n",mcause);
+    //printinfo("mcause is %h\n",1);
 
     if( exc_handle != 0){
         ( (exception_handle_t)(exc_handle[0]) )( exc_handle[1] );

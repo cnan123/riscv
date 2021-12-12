@@ -554,7 +554,7 @@ assign instr_acs_fault = (instr_value & instr_fetch_error);
 
 assign exception_taken_id = ecall_en | ebreak_en | illegal_instr | instr_acs_fault | mret_en | uret_en | fence_en | wfi_en;
 
-assign interrupt_taken_id   = (~flush_D) & (extern_irq_taken | soft_irq_taken | timer_irq_taken) & valid_id; 
+assign interrupt_taken_id   = (~flush_D) & (extern_irq_taken | soft_irq_taken | timer_irq_taken) & valid_id & ~instr_fetch_error; 
 assign exc_taken_id       = (exception_taken_id | interrupt_taken_id);
 
 always @(posedge clk or negedge reset_n)begin
@@ -567,14 +567,14 @@ always @(posedge clk or negedge reset_n)begin
     end
 end
 
-assign is_ecall             = ready_ex & ecall_en;
-assign is_ebreak            = ready_ex & ebreak_en;
-assign is_mret              = ready_ex & mret_en;
-assign is_sret              = ready_ex & sret_en;
-assign is_uret              = ready_ex & uret_en;
-assign is_wfi               = ready_ex & wfi_en;
-assign is_fence             = ready_ex & fence_en;
-assign is_illegal_instr     = ready_ex & illegal_instr;
+assign is_ecall             = ready_ex & ~instr_fetch_error & ecall_en;
+assign is_ebreak            = ready_ex & ~instr_fetch_error & ebreak_en;
+assign is_mret              = ready_ex & ~instr_fetch_error & mret_en;
+assign is_sret              = ready_ex & ~instr_fetch_error & sret_en;
+assign is_uret              = ready_ex & ~instr_fetch_error & uret_en;
+assign is_wfi               = ready_ex & ~instr_fetch_error & wfi_en;
+assign is_fence             = ready_ex & ~instr_fetch_error & fence_en;
+assign is_illegal_instr     = ready_ex & ~instr_fetch_error & illegal_instr;
 assign is_instr_acs_fault   = ready_ex & instr_acs_fault;
 assign is_interrupt         = ready_ex & interrupt_taken_id;
 

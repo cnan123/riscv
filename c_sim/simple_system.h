@@ -12,7 +12,7 @@
 #define _SIMPLE_SYSTEM_H
 #include <stdint.h>
 
-#define CMD     0xfffffffc
+#define CMD     0xfffffff0
 #define ARG     0xfffffff8
 #define UART    0xfffffff4
 

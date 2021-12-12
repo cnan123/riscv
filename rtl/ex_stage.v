@@ -11,7 +11,9 @@
 import riscv_pkg::*;
 
 module ex_stage#(
-    parameter ILLEGAL_CSR_EN = 1'b0
+    parameter ILLEGAL_CSR_EN    = 1'b0,
+    parameter PMP_ENABLE        = 1'b1,
+    parameter PMP_ENTRY         = 16
 )(
     input                       clk,
     input                       reset_n,
@@ -93,6 +95,8 @@ module ex_stage#(
     
     output logic                exc_taken_mem,
     output logic                is_illegal_csr,
+    output logic                is_pmp_load_err,
+    output logic                is_pmp_store_err,
 
     output logic                rd_wr_en_mem,
     output logic [TAG_WIDTH-1:0]rd_wr_tag_mem,
@@ -123,7 +127,9 @@ module ex_stage#(
     output logic                mstatus_mie,
     output logic [31:0]         mtvec,
     output logic [31:0]         mepc,
-    output logic [31:0]         mie
+    output logic [31:0]         mie,
+    output [PMP_ENTRY-1:0][7:0] pmpcfg,
+    output [PMP_ENTRY-1:0][31:0]pmpaddr
 );
 
 // Local Variables:
@@ -141,6 +147,7 @@ logic [31:0]		csr_rdata;		// From csr_register of csr.v
 logic			illegal_csr;		// From csr_register of csr.v
 logic [31:0]		logic_result;		// From u_alu of alu.v
 logic [63:0]		mul_result;		// From multiplier of multiplier.v
+logic			pmp_err;		// From lsu_pmp of pmp.v
 logic [31:0]		quotient;		// From divider of div.v
 logic			ready_div;		// From divider of div.v
 logic [31:0]		remainder;		// From divider of div.v
@@ -167,6 +174,7 @@ logic           store;
 
 logic           exc_ex;
 
+logic           branch_jump_mask;
 logic           compare_taken;
 
 logic [31:0]    adder1_op_a;
@@ -175,6 +183,10 @@ logic [31:0]    adder2_op_a;
 logic [31:0]    adder2_op_b;
 
 logic           jump_fail;
+
+logic [2:0]     acs_type;
+logic [31:0]    acs_address;
+
 
 //////////////////////////////////////////////
 //main code
@@ -243,6 +255,8 @@ csr csr_register(
 		 .mepc			(mepc[31:0]),
 		 .mtvec			(mtvec[31:0]),
 		 .mie			(mie[31:0]),
+		 .pmpcfg		(pmpcfg/*[PMP_ENTRY-1:0][7:0]*/),
+		 .pmpaddr		(pmpaddr/*[PMP_ENTRY-1:0][31:0]*/),
 		 // Inputs
 		 .clk			(clk),
 		 .reset_n		(reset_n),
@@ -322,13 +336,52 @@ div divider(/*AUTOINST*/
 	    .op_a			(src_a_ex[31:0]),	 // Templated
 	    .op_b			(src_b_ex[31:0]));	 // Templated
 
+
+//////////////////////////////////////////////
+//lsu pmp 
+//////////////////////////////////////////////
+/*pmp AUTO_TEMPLATE(
+	.acs_en_i	(lsu_en_ex),
+    .\(.*\)_i    (\1),
+    .\(.*\)_o    (\1),
+);*/
+pmp #(
+/*AUTOINSTPARAM*/
+      // Parameters
+      .PMP_ENTRY			(PMP_ENTRY))lsu_pmp(
+/*AUTOINST*/
+							    // Interfaces
+							    .privilege_mode	(privilege_mode),
+							    // Outputs
+							    .pmp_err_o		(pmp_err),	 // Templated
+							    // Inputs
+							    .pmpcfg_i		(pmpcfg),	 // Templated
+							    .pmpaddr_i		(pmpaddr),	 // Templated
+							    .acs_en_i		(lsu_en_ex),	 // Templated
+							    .acs_type_i		(acs_type),	 // Templated
+							    .acs_address_i	(acs_address));	 // Templated
+
+assign acs_type     = {1'b0, (lsu_op_ex!=LSU_OP_LD), (lsu_op_ex==LSU_OP_LD) }; 
+assign acs_address  = adder0_result[31:0];
+
+
 //////////////////////////////////////////////
 //branch/jump
 //////////////////////////////////////////////
-assign branch_taken         = branch_ex & predict_fail;
+always @(posedge clk or negedge reset_n)begin
+    if(!reset_n)begin
+        branch_jump_mask <= 1'b0;
+    end else if( ~ready_ex ) begin
+        branch_jump_mask <= (branch_ex | jump_ex) & ~flush_E;
+    end else begin
+        branch_jump_mask <= 1'b0;
+    end
+end
+
+assign branch_taken         = branch_ex & predict_fail & ~branch_jump_mask;
 assign branch_target_addr   = ( predict_taken_ex & ~compare_result ) ? adder2_result : adder1_result;
 
-assign jump_taken           = jump_ex & (predict_fail | jump_fail);
+assign jump_taken           = jump_ex & (predict_fail | jump_fail) & ~branch_jump_mask;
 assign jump_target_addr     = src_a_ex;
 
 assign bht_fail             = branch_ex & ( ( predict_taken_ex & ~compare_result ) | (~predict_taken_ex & compare_result) );
@@ -372,7 +425,7 @@ always @(posedge clk or negedge reset_n)begin
         lsu_dtype_mem[2:0]  <= LSU_DTYPE_U_BYTE;
         lsu_addr_mem[31:0]  <= 32'h0;
     end else if(valid_ex)begin
-        lsu_en_mem          <= lsu_en_ex;
+        lsu_en_mem          <= lsu_en_ex & ~pmp_err;
         lsu_op_mem          <= lsu_op_ex;
         lsu_dtype_mem[2:0]  <= lsu_dtype_ex[2:0];
         lsu_addr_mem[31:0]  <= adder0_result[31:0];
@@ -461,12 +514,15 @@ end
 
 generate
 if( ILLEGAL_CSR_EN==1)begin:en_illegal_csr
-    assign exc_ex = illegal_csr;
+    assign exc_ex = illegal_csr | pmp_err;
     assign is_illegal_csr = illegal_csr & ready_mem;
 end else begin: gen_unused_illegal
-    assign exc_ex = 1'b0;
-    assign is_illegal_csr = 1'b0;
+    assign exc_ex = pmp_err;
+    assign is_illegal_csr   = 1'b0;
 end
 endgenerate
+
+assign is_pmp_load_err  = pmp_err & ready_mem & (lsu_en_ex==LSU_OP_LD);
+assign is_pmp_store_err  = pmp_err & ready_mem & (lsu_en_ex!=LSU_OP_LD);
 
 endmodule

@@ -46,6 +46,8 @@ module controller(
     input logic                 is_wfi,
     //EX stage
     input logic                 is_illegal_csr,
+    input logic                 is_pmp_load_err,
+    input logic                 is_pmp_store_err,
     //MEM stage  reserved
     //WB stage
     input logic                 is_lsu_load_err,
@@ -181,12 +183,12 @@ always @(*)begin
     mepc_mux = MEPC_PC_WB;
     if(exc_taken)begin
         unique case(1)
-            is_lsu_store_err: begin 
+            is_lsu_store_err,is_pmp_store_err: begin 
                 mepc_updata=1'b1; 
                 mcause_update=1'b1;
                 mcause = MCAUSE_STORE_ACS_FAULT; 
             end
-            is_lsu_load_err : begin 
+            is_lsu_load_err,is_pmp_load_err: begin 
                 mepc_updata=1'b1; 
                 mcause_update=1'b1;
                 mcause = MCAUSE_LOAD_ACS_FAULT; 

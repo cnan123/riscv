@@ -25,7 +25,7 @@
 
 `define MONITOR_PATH tb.riscv_core
 
-parameter CMD_ADDR = 32'hffff_fffc;
+parameter CMD_ADDR = 32'hffff_fff0;
 parameter ARG_ADDR = 32'hffff_fff8;
 parameter PRINT_ADDR = 32'hffff_fff4;
 

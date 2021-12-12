@@ -10,6 +10,8 @@
 //================================================================
 
 module riscv_core#(
+    parameter PMP_ENABLE        = 1'b1,
+    parameter PMP_ENTRY         = 16,
     parameter ILLEGAL_CSR_EN = 1'b0,
     parameter BRANCH_PREDICTION = 1'b0,
     parameter ENA_BHT = 1,
@@ -116,6 +118,8 @@ logic			is_interrupt;		// From id_stage of id_stage.v
 logic			is_lsu_load_err;	// From wb_stage of wb_stage.v
 logic			is_lsu_store_err;	// From wb_stage of wb_stage.v
 logic			is_mret;		// From id_stage of id_stage.v
+logic			is_pmp_load_err;	// From ex_stage of ex_stage.v
+logic			is_pmp_store_err;	// From ex_stage of ex_stage.v
 logic			is_sret;		// From id_stage of id_stage.v
 logic			is_uret;		// From id_stage of id_stage.v
 logic			is_wfi;			// From id_stage of id_stage.v
@@ -144,6 +148,8 @@ logic [31:0]		pc_id;			// From if_stage of if_stage.v
 logic [31:0]		pc_if;			// From if_stage of if_stage.v
 logic [31:0]		pc_mem;			// From ex_stage of ex_stage.v
 logic [31:0]		pc_wb;			// From mem_stage of mem_stage.v
+logic [PMP_ENTRY-1:0] [31:0] pmpaddr;		// From ex_stage of ex_stage.v
+logic [PMP_ENTRY-1:0] [7:0] pmpcfg;		// From ex_stage of ex_stage.v
 logic			predict_fail;		// From ex_stage of ex_stage.v
 logic [31:0]		predict_pc_id;		// From if_stage of if_stage.v
 logic			predict_taken_ex;	// From id_stage of id_stage.v
@@ -217,12 +223,16 @@ privilege_e         privilege_mode;
 if_stage #(
     /*AUTOINSTPARAM*/
 	   // Parameters
+	   .PMP_ENABLE			(PMP_ENABLE),
+	   .PMP_ENTRY			(PMP_ENTRY),
 	   .BRANCH_PREDICTION		(BRANCH_PREDICTION),
 	   .ENA_BHT			(ENA_BHT),
 	   .ENA_BTB			(ENA_BTB),
 	   .ENA_RAS			(ENA_RAS),
 	   .ENA_JUMP			(ENA_JUMP))if_stage(
     /*AUTOINST*/
+							    // Interfaces
+							    .privilege_mode	(privilege_mode),
 							    // Outputs
 							    .pc_if		(pc_if[31:0]),
 							    .pc_id		(pc_id[31:0]),
@@ -252,6 +262,8 @@ if_stage #(
 							    .bht_updata		(bht_updata),
 							    .bht_pc		(bht_pc[31:0]),
 							    .bht_taken		(bht_taken),
+							    .pmpcfg		(pmpcfg/*[PMP_ENTRY-1:0][7:0]*/),
+							    .pmpaddr		(pmpaddr/*[PMP_ENTRY-1:0][31:0]*/),
 							    .instr_gnt		(instr_gnt),
 							    .instr_rdata	(instr_rdata[31:0]),
 							    .instr_err		(instr_err),
@@ -357,97 +369,103 @@ id_stage id_stage(
 );*/
 ex_stage #( /*AUTOINSTPARAM*/
 	   // Parameters
-	   .ILLEGAL_CSR_EN		(ILLEGAL_CSR_EN))ex_stage( 
+	   .ILLEGAL_CSR_EN		(ILLEGAL_CSR_EN),
+	   .PMP_ENABLE			(PMP_ENABLE),
+	   .PMP_ENTRY			(PMP_ENTRY))ex_stage( 
 /*AUTOINST*/
-								  // Interfaces
-								  .adder_op_ex		(adder_op_ex),
-								  .comp_op_ex		(comp_op_ex),
-								  .logic_op_ex		(logic_op_ex),
-								  .shift_op_ex		(shift_op_ex),
-								  .lsu_op_ex		(lsu_op_ex),
-								  .lsu_dtype_ex		(lsu_dtype_ex),
-								  .mult_op_ex		(mult_op_ex),
-								  .lsu_op_mem		(lsu_op_mem),
-								  .lsu_dtype_mem	(lsu_dtype_mem),
-								  .mepc_mux		(mepc_mux),
-								  .mcause		(mcause),
-								  .privilege_mode	(privilege_mode),
-								  // Outputs
-								  .ready_ex		(ready_ex),
-								  .pc_mem		(pc_mem[31:0]),
-								  .iretire_mem		(iretire_mem),
-								  .jump_target_addr	(jump_target_addr[31:0]),
-								  .jump_taken		(jump_taken),
-								  .branch_target_addr	(branch_target_addr[31:0]),
-								  .branch_taken		(branch_taken),
-								  .predict_fail		(predict_fail),
-								  .btb_invalid		(btb_invalid),
-								  .btb_update		(btb_update),
-								  .btb_pc		(btb_pc[31:0]),
-								  .btb_target		(btb_target[31:0]),
-								  .bht_updata		(bht_updata),
-								  .bht_pc		(bht_pc[31:0]),
-								  .bht_taken		(bht_taken),
-								  .lsu_en_mem		(lsu_en_mem),
-								  .lsu_addr_mem		(lsu_addr_mem[31:0]),
-								  .lsu_wdata_mem	(lsu_wdata_mem[31:0]),
-								  .exc_taken_mem	(exc_taken_mem),
-								  .is_illegal_csr	(is_illegal_csr),
-								  .rd_wr_en_mem		(rd_wr_en_mem),
-								  .rd_wr_tag_mem	(rd_wr_tag_mem[TAG_WIDTH-1:0]),
-								  .rd_wr_addr_mem	(rd_wr_addr_mem[4:0]),
-								  .rd_wr_data_mem	(rd_wr_data_mem[31:0]),
-								  .forward_ex_en	(forward_ex_en),
-								  .forward_ex_tag	(forward_ex_tag[TAG_WIDTH-1:0]),
-								  .forward_ex_addr	(forward_ex_addr[4:0]),
-								  .forward_ex_wdata	(forward_ex_wdata[31:0]),
-								  .clr_dirty_ex_en	(clr_dirty_ex_en),
-								  .clr_dirty_ex_addr	(clr_dirty_ex_addr[4:0]),
-								  .mstatus_mie		(mstatus_mie),
-								  .mtvec		(mtvec[31:0]),
-								  .mepc			(mepc[31:0]),
-								  .mie			(mie[31:0]),
-								  // Inputs
-								  .clk			(clk),
-								  .reset_n		(reset_n),
-								  .stall_E		(stall_E),
-								  .flush_E		(flush_E),
-								  .ready_mem		(ready_mem),
-								  .iretire_ex		(iretire_ex),
-								  .pc_id		(pc_id[31:0]),
-								  .pc_ex		(pc_ex[31:0]),
-								  .jalr_ex		(jalr_ex),
-								  .jump_ex		(jump_ex),
-								  .branch_ex		(branch_ex),
-								  .compress_instr_ex	(compress_instr_ex),
-								  .predict_taken_ex	(predict_taken_ex),
-								  .sign_ex		(sign_ex),
-								  .adder_en_ex		(adder_en_ex),
-								  .comp_en_ex		(comp_en_ex),
-								  .logic_en_ex		(logic_en_ex),
-								  .shift_en_ex		(shift_en_ex),
-								  .src_a_ex		(src_a_ex[31:0]),
-								  .src_b_ex		(src_b_ex[31:0]),
-								  .src_c_ex		(src_c_ex[31:0]),
-								  .lsu_en_ex		(lsu_en_ex),
-								  .mult_en_ex		(mult_en_ex),
-								  .csr_en_ex		(csr_en_ex),
-								  .csr_op_ex		(csr_op_ex[1:0]),
-								  .csr_addr_ex		(csr_addr_ex[11:0]),
-								  .csr_wdata_ex		(csr_wdata_ex[31:0]),
-								  .rd_wr_en_ex		(rd_wr_en_ex),
-								  .rd_wr_tag_ex		(rd_wr_tag_ex[TAG_WIDTH-1:0]),
-								  .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
-								  .exc_taken_ex		(exc_taken_ex),
-								  .pc_wb		(pc_wb[31:0]),
-								  .pc_if		(pc_if[31:0]),
-								  .extern_intr		(extern_irq_taken), // Templated
-								  .timer_intr		(timer_irq_taken), // Templated
-								  .software_intr	(soft_irq_taken), // Templated
-								  .hart_id		(hart_id[31:0]),
-								  .is_mret		(is_mret),
-								  .mepc_updata		(mepc_updata),
-								  .mcause_update	(mcause_update));
+							     // Interfaces
+							     .adder_op_ex	(adder_op_ex),
+							     .comp_op_ex	(comp_op_ex),
+							     .logic_op_ex	(logic_op_ex),
+							     .shift_op_ex	(shift_op_ex),
+							     .lsu_op_ex		(lsu_op_ex),
+							     .lsu_dtype_ex	(lsu_dtype_ex),
+							     .mult_op_ex	(mult_op_ex),
+							     .lsu_op_mem	(lsu_op_mem),
+							     .lsu_dtype_mem	(lsu_dtype_mem),
+							     .mepc_mux		(mepc_mux),
+							     .mcause		(mcause),
+							     .privilege_mode	(privilege_mode),
+							     // Outputs
+							     .ready_ex		(ready_ex),
+							     .pc_mem		(pc_mem[31:0]),
+							     .iretire_mem	(iretire_mem),
+							     .jump_target_addr	(jump_target_addr[31:0]),
+							     .jump_taken	(jump_taken),
+							     .branch_target_addr(branch_target_addr[31:0]),
+							     .branch_taken	(branch_taken),
+							     .predict_fail	(predict_fail),
+							     .btb_invalid	(btb_invalid),
+							     .btb_update	(btb_update),
+							     .btb_pc		(btb_pc[31:0]),
+							     .btb_target	(btb_target[31:0]),
+							     .bht_updata	(bht_updata),
+							     .bht_pc		(bht_pc[31:0]),
+							     .bht_taken		(bht_taken),
+							     .lsu_en_mem	(lsu_en_mem),
+							     .lsu_addr_mem	(lsu_addr_mem[31:0]),
+							     .lsu_wdata_mem	(lsu_wdata_mem[31:0]),
+							     .exc_taken_mem	(exc_taken_mem),
+							     .is_illegal_csr	(is_illegal_csr),
+							     .is_pmp_load_err	(is_pmp_load_err),
+							     .is_pmp_store_err	(is_pmp_store_err),
+							     .rd_wr_en_mem	(rd_wr_en_mem),
+							     .rd_wr_tag_mem	(rd_wr_tag_mem[TAG_WIDTH-1:0]),
+							     .rd_wr_addr_mem	(rd_wr_addr_mem[4:0]),
+							     .rd_wr_data_mem	(rd_wr_data_mem[31:0]),
+							     .forward_ex_en	(forward_ex_en),
+							     .forward_ex_tag	(forward_ex_tag[TAG_WIDTH-1:0]),
+							     .forward_ex_addr	(forward_ex_addr[4:0]),
+							     .forward_ex_wdata	(forward_ex_wdata[31:0]),
+							     .clr_dirty_ex_en	(clr_dirty_ex_en),
+							     .clr_dirty_ex_addr	(clr_dirty_ex_addr[4:0]),
+							     .mstatus_mie	(mstatus_mie),
+							     .mtvec		(mtvec[31:0]),
+							     .mepc		(mepc[31:0]),
+							     .mie		(mie[31:0]),
+							     .pmpcfg		(pmpcfg/*[PMP_ENTRY-1:0][7:0]*/),
+							     .pmpaddr		(pmpaddr/*[PMP_ENTRY-1:0][31:0]*/),
+							     // Inputs
+							     .clk		(clk),
+							     .reset_n		(reset_n),
+							     .stall_E		(stall_E),
+							     .flush_E		(flush_E),
+							     .ready_mem		(ready_mem),
+							     .iretire_ex	(iretire_ex),
+							     .pc_id		(pc_id[31:0]),
+							     .pc_ex		(pc_ex[31:0]),
+							     .jalr_ex		(jalr_ex),
+							     .jump_ex		(jump_ex),
+							     .branch_ex		(branch_ex),
+							     .compress_instr_ex	(compress_instr_ex),
+							     .predict_taken_ex	(predict_taken_ex),
+							     .sign_ex		(sign_ex),
+							     .adder_en_ex	(adder_en_ex),
+							     .comp_en_ex	(comp_en_ex),
+							     .logic_en_ex	(logic_en_ex),
+							     .shift_en_ex	(shift_en_ex),
+							     .src_a_ex		(src_a_ex[31:0]),
+							     .src_b_ex		(src_b_ex[31:0]),
+							     .src_c_ex		(src_c_ex[31:0]),
+							     .lsu_en_ex		(lsu_en_ex),
+							     .mult_en_ex	(mult_en_ex),
+							     .csr_en_ex		(csr_en_ex),
+							     .csr_op_ex		(csr_op_ex[1:0]),
+							     .csr_addr_ex	(csr_addr_ex[11:0]),
+							     .csr_wdata_ex	(csr_wdata_ex[31:0]),
+							     .rd_wr_en_ex	(rd_wr_en_ex),
+							     .rd_wr_tag_ex	(rd_wr_tag_ex[TAG_WIDTH-1:0]),
+							     .rd_wr_addr_ex	(rd_wr_addr_ex[4:0]),
+							     .exc_taken_ex	(exc_taken_ex),
+							     .pc_wb		(pc_wb[31:0]),
+							     .pc_if		(pc_if[31:0]),
+							     .extern_intr	(extern_irq_taken), // Templated
+							     .timer_intr	(timer_irq_taken), // Templated
+							     .software_intr	(soft_irq_taken), // Templated
+							     .hart_id		(hart_id[31:0]),
+							     .is_mret		(is_mret),
+							     .mepc_updata	(mepc_updata),
+							     .mcause_update	(mcause_update));
 
 /*mem_stage AUTO_TEMPLATE(
 );*/
@@ -580,6 +598,8 @@ controller controller(/*AUTOINST*/
 		      .is_interrupt	(is_interrupt),
 		      .is_wfi		(is_wfi),
 		      .is_illegal_csr	(is_illegal_csr),
+		      .is_pmp_load_err	(is_pmp_load_err),
+		      .is_pmp_store_err	(is_pmp_store_err),
 		      .is_lsu_load_err	(is_lsu_load_err),
 		      .is_lsu_store_err	(is_lsu_store_err),
 		      .mepc		(mepc[31:0]),

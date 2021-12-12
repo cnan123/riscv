@@ -342,7 +342,25 @@ parameter MTINST            = 12'h34A;
 parameter MTVAL2            = 12'h34B;
 //machine memory protection
 parameter PMPCFG0           = 12'h3A0; //0~15
+parameter PMPCFG1           = 12'h3A1; //0~15
+parameter PMPCFG2           = 12'h3A2; //0~15
+parameter PMPCFG3           = 12'h3A3; //0~15
 parameter PMPADDR0          = 12'h3B0; //0~63
+parameter PMPADDR1          = 12'h3B1; //0~63
+parameter PMPADDR2          = 12'h3B2; //0~63
+parameter PMPADDR3          = 12'h3B3; //0~63
+parameter PMPADDR4          = 12'h3B4; //0~63
+parameter PMPADDR5          = 12'h3B5; //0~63
+parameter PMPADDR6          = 12'h3B6; //0~63
+parameter PMPADDR7          = 12'h3B7; //0~63
+parameter PMPADDR8          = 12'h3B8; //0~63
+parameter PMPADDR9          = 12'h3B9; //0~63
+parameter PMPADDR10         = 12'h3BA; //0~63
+parameter PMPADDR11         = 12'h3BB; //0~63
+parameter PMPADDR12         = 12'h3BC; //0~63
+parameter PMPADDR13         = 12'h3BD; //0~63
+parameter PMPADDR14         = 12'h3BE; //0~63
+parameter PMPADDR15         = 12'h3BF; //0~63
 
 //machine counter/timer
 parameter MCYCLE            = 12'hB00;
@@ -477,5 +495,10 @@ typedef enum logic [1:0] {
 parameter BIT_MIE_MEIE = 11;
 parameter BIT_MIE_MTIE = 7;
 parameter BIT_MIE_MSIE = 3;
+
+parameter OFF   = 2'b00;
+parameter TOR   = 2'b01;
+parameter NA4   = 2'b10;
+parameter NAPOT = 2'b11;
 
 endpackage

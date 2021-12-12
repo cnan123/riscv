@@ -83,7 +83,7 @@ logic           exc_mem;
 //main code
 
 /*lsu AUTO_TEMPLATE(
-    .lsu_en     (lsu_en_mem ),
+    .lsu_en     (lsu_en ),
     .lsu_op     (lsu_op_mem),
     .lsu_dtype  (lsu_dtype_mem ),
     .lsu_addr   (lsu_addr_mem),
@@ -112,7 +112,7 @@ lsu lsu(
 	// Inputs
 	.clk				(clk),
 	.reset_n			(reset_n),
-	.lsu_en				(lsu_en_mem ),		 // Templated
+	.lsu_en				(lsu_en ),		 // Templated
 	.lsu_addr			(lsu_addr_mem),		 // Templated
 	.lsu_wdata			(lsu_wdata_mem),	 // Templated
 	.data_gnt			(data_gnt),
@@ -120,7 +120,7 @@ lsu lsu(
 	.data_valid			(data_valid),
 	.data_error			(data_error));
 
-assign lsu_en = lsu_en_mem & (~ready_wb) & (~flush_M);
+assign lsu_en = lsu_en_mem & ready_wb & (~flush_M);
 
 assign ready_mem = ready_wb & lsu_ready & (~exc_mem);      
 assign valid_mem = ready_wb & lsu_ready;

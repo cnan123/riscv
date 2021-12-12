@@ -8,8 +8,11 @@
 //
 //
 //================================================================
+import riscv_pkg::*;
 
 module if_stage#(
+    parameter PMP_ENABLE    = 1'b1,
+    parameter PMP_ENTRY     = 16,
     parameter BRANCH_PREDICTION = 1'b0,
     parameter ENA_BHT = 1,
     parameter ENA_BTB = 1,
@@ -49,6 +52,11 @@ module if_stage#(
     input [31:0]            bht_pc,
     input                   bht_taken,
     
+    //pmp
+    input privilege_e           privilege_mode,
+    input [PMP_ENTRY-1:0][7:0]  pmpcfg,
+    input [PMP_ENTRY-1:0][31:0] pmpaddr,
+
     //instruction interface
     output logic            instr_req,
     output logic [31:0]     instr_addr,
@@ -109,11 +117,11 @@ logic [32:0]    fifo_wdata;
 logic           fifo_almost_full;
 
 logic           cmd_fifo_push;
-logic [1:0]     cmd_fifo_wdata;
+logic [2:0]     cmd_fifo_wdata;
 logic           cmd_fifo_full;
 logic           cmd_fifo_almost_full;
 logic           cmd_fifo_pop;
-logic [1:0]     cmd_fifo_rdata;
+logic [2:0]     cmd_fifo_rdata;
 logic           cmd_fifo_rvalid;
 logic           cmd_fifo_empty;
 
@@ -121,6 +129,11 @@ logic           pmp_err;
 
 logic           cmd_updiscon;
 logic           cmd_pmp_err;
+logic           cmd_abort;
+logic           cmd_updiscon_q;
+logic           cmd_pmp_err_q;
+logic           cmd_abort_q;
+
 logic           fifo_flush;
 logic           updiscon_new;
 logic           updiscon;
@@ -135,6 +148,8 @@ logic           predict_taken_if;
 logic [31:0]    predict_pc_if;
 
 logic           insn_compress_if;
+
+logic           req_abort;
 
 //////////////////////////////////////////////
 //main code
@@ -224,18 +239,10 @@ always @(posedge clk or negedge reset_n)begin
         hold_rdata          <= 16'h0;
         hold_rdata_value    <= 1'b0;
         hold_rdata_err      <= 1'b0;
-    end else if( ~fetch_en )begin
-        hold_rdata          <= hold_rdata;
-        hold_rdata_value    <= hold_rdata_value;
-        hold_rdata_err      <= hold_rdata_err;
-    end else if(hold_en)begin
+    end else if( (insn_value | fifo_valid) & fetch_en )begin
         hold_rdata          <= fifo_rdata[31:16];
-        hold_rdata_value    <= 1'b1;
-        hold_rdata_err      <= fifo_rdata[32];
-    end else begin
-        hold_rdata          <= hold_rdata;
-        hold_rdata_value    <= 1'b0;
-        hold_rdata_err      <= 1'b0;
+        hold_rdata_value    <= hold_en;
+        hold_rdata_err      <= hold_en & fifo_rdata[32];
     end
 end
 
@@ -298,7 +305,7 @@ prefetch_fifo #(
 assign fifo_clear   = updiscon_new;
 assign fifo_ready   = fetch_en & (~hold_data_is_compress);
 
-assign fifo_wvalid  = fifo_flush ? (instr_valid & cmd_updiscon) : instr_valid;
+assign fifo_wvalid  = fifo_flush ? ( (instr_valid | cmd_pmp_err) & cmd_updiscon ) : instr_valid | cmd_pmp_err;
 assign fifo_wdata   = { (instr_err | cmd_pmp_err), instr_rdata[31:0] };
 
 
@@ -306,7 +313,7 @@ assign fifo_wdata   = { (instr_err | cmd_pmp_err), instr_rdata[31:0] };
 
 sync_fifo #(
     .DEPTH      (2),
-    .DATA_WIDTH (2)
+    .DATA_WIDTH (3)
 ) cmd_fifo(
     .clk                    (clk                    ),
     .reset_n                (reset_n                ),
@@ -314,25 +321,29 @@ sync_fifo #(
     .fifo_clear             (1'b0                   ),
     
     .wr_en                  (cmd_fifo_push          ),
-    .wr_data                (cmd_fifo_wdata[1:0]    ),
+    .wr_data                (cmd_fifo_wdata[2:0]    ),
     .fifo_full              (cmd_fifo_full          ),
     .fifo_almost_full       (cmd_fifo_almost_full   ),
 
     .rd_en                  (cmd_fifo_pop           ),
-    .rd_data                (cmd_fifo_rdata[1:0]    ),
+    .rd_data                (cmd_fifo_rdata[2:0]    ),
     .rd_data_valid          (cmd_fifo_rvalid        ),
     .fifo_empty             (cmd_fifo_empty         )
 );
 
-assign pmp_err          = 1'b0; //TODO
 
-assign cmd_fifo_push    = instr_req & instr_gnt;
-assign cmd_fifo_wdata   = { pmp_err, updiscon };
+assign cmd_fifo_push    = (instr_req & instr_gnt) | pmp_err;
+assign cmd_fifo_wdata   = { req_abort, pmp_err, updiscon };
 
-assign cmd_fifo_pop     = instr_valid;
+assign cmd_fifo_pop     = instr_valid | (cmd_pmp_err_q & cmd_abort_q);
 
-assign cmd_updiscon     = cmd_fifo_rdata[0];
-assign cmd_pmp_err      = cmd_fifo_rdata[1];
+assign cmd_updiscon_q   = cmd_fifo_rdata[0];
+assign cmd_pmp_err_q    = cmd_fifo_rdata[1];
+assign cmd_abort_q      = cmd_fifo_rdata[2];
+
+assign cmd_updiscon     = cmd_fifo_pop & cmd_updiscon_q;
+assign cmd_pmp_err      = cmd_fifo_pop & cmd_pmp_err_q;
+assign cmd_abort        = cmd_fifo_pop & cmd_abort_q;
 
 always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
@@ -363,7 +374,7 @@ end
 
 assign set_instr_addr   = ( set_pc_valid ? set_pc : predict_pc_if );
 
-assign instr_req_new    = is_boot & fetch_enable & ~cmd_fifo_full & ( (~fifo_almost_full) | fifo_clear );
+assign instr_req_new    = is_boot & fetch_enable & ~cmd_fifo_full & ( ((~fifo_almost_full) & (~cmd_pmp_err_q)) | fifo_clear );
 
 assign instr_req        = (instr_req_new | req_fail);
 assign instr_addr       = fifo_clear ? {set_instr_addr[31:2],2'h0} : instr_prefetch_addr;
@@ -388,11 +399,41 @@ always @(posedge clk or negedge reset_n)begin
     if(!reset_n)begin
         req_fail <= 1'b0;
     end else begin
-        req_fail <= instr_req & ~instr_gnt;
+        req_fail <= instr_req & ~instr_gnt & ~pmp_err;
     end
 end
 
+assign req_abort = instr_req & ~instr_gnt & pmp_err;
 
+generate
+if(PMP_ENABLE==1)begin:gen_pmp
+/*pmp AUTO_TEMPLATE(
+    .acs_en_i   (instr_req_new),
+    .acs_type_i (3'b100),
+    .acs_address_i (instr_addr[]),
+    .\(.*\)_o   (\1),
+    .\(.*\)_i   (\1),
+);
+*/
+
+pmp #(
+/*AUTOINSTPARAM*/
+      // Parameters
+      .PMP_ENTRY			(PMP_ENTRY))fetch_pmp(/*AUTOINST*/
+							      // Interfaces
+							      .privilege_mode	(privilege_mode),
+							      // Outputs
+							      .pmp_err_o	(pmp_err),	 // Templated
+							      // Inputs
+							      .pmpcfg_i		(pmpcfg),	 // Templated
+							      .pmpaddr_i	(pmpaddr),	 // Templated
+							      .acs_en_i		(instr_req_new), // Templated
+							      .acs_type_i	(3'b100),	 // Templated
+							      .acs_address_i	(instr_addr[31:0])); // Templated
+end else begin:gen_no_pmp
+    assign pmp_err          = 1'b0; //TODO
+end
+endgenerate
 /////////////////////////////////////////////////
 //fetch from program memroy
 /////////////////////////////////////////////////

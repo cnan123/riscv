@@ -26,5 +26,6 @@ ${PROJ_PATH}/rtl/wb_stage.sv
 ${PROJ_PATH}/rtl/register_file.v
 ${PROJ_PATH}/rtl/controller.v
 ${PROJ_PATH}/rtl/plic.sv
+${PROJ_PATH}/rtl/pmp.sv
 ${PROJ_PATH}/rtl/riscv_core.v
 

@@ -9,7 +9,10 @@
 //
 //================================================================
 
-module csr(
+module csr#(
+    parameter PMP_ENABLE    = 1,
+    parameter PMP_ENTRY     = 16
+)(
         input                   clk,
         input                   reset_n,
 
@@ -37,20 +40,19 @@ module csr(
         input                   software_intr,
 
         //constrol status register
-        output privilege_e      privilege_mode,
-        output logic            mstatus_mie,
-        output logic [31:0]     mepc,
-        output logic [31:0]     mtvec,
-        output logic [31:0]     mie
+        output privilege_e                  privilege_mode,
+        output logic                        mstatus_mie,
+        output logic [31:0]                 mepc,
+        output logic [31:0]                 mtvec,
+        output logic [31:0]                 mie,
+        output logic [PMP_ENTRY-1:0][7:0]   pmpcfg,
+        output logic [PMP_ENTRY-1:0][31:0]  pmpaddr
 );
 
 // Local Variables:
 // verilog-library-directories:("." "dir1" "dir2" ...)
 // End:
 
-//////////////////////////////////////////////
-/*AUTOLOGIC*/
-//////////////////////////////////////////////
 
 logic       mvendorid_en            ;
 logic       marchid_en              ; 
@@ -65,9 +67,13 @@ logic       mepc_en                 ;
 logic       mcause_en               ;
 logic       mtval_en                ;
 logic       mip_en                  ;
-logic       mcounter_en;
-logic       mcountinhit_en;
-logic       mcycle_en;
+logic       mcounter_en             ;
+logic       mcountinhit_en          ;
+logic       mcycle_en               ;
+logic       pmpcfg_en               ;
+logic       pmpaddr_en              ;
+
+
 logic       illegal_csr_register    ;
 
 
@@ -94,6 +100,14 @@ logic [31:0] mtval_q;
 
 logic [31:0] rdata;
 
+logic [PMP_ENTRY-1:0]       pmpcfg_entery_en;
+logic [PMP_ENTRY-1:0]       pmpaddr_entery_en;
+logic [PMP_ENTRY-1:0][7:0]  pmpcfg_q;
+logic [PMP_ENTRY-1:0][31:0] pmpaddr_q;
+logic [PMP_ENTRY-1:0]       pmp_lock;
+logic [PMP_ENTRY-1:0][2:0]  pmp_mode;      
+logic [PMP_ENTRY-1:0]       lock;
+
 //////////////////////////////////////////////
 //main code
 
@@ -114,6 +128,8 @@ always @(*)begin
     mcounter_en             = 1'b0;
     mcountinhit_en          = 1'b0;
     mcycle_en               = 1'b0;
+    pmpcfg_en               = 1'b0;
+    pmpaddr_en              = 1'b0;
 
     csr_rdata               = 32'h0;
     illegal_csr             = 1'b0;
@@ -198,6 +214,17 @@ always @(*)begin
             MCYCLE : begin 
                 mcycle_en   = (~illegal_csr);
                 csr_rdata   = mcycle_q;
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            PMPCFG0,PMPCFG1,PMPCFG2,PMPCFG3:begin
+                pmpcfg_en   = (privilege_mode_q == PRIV_LVL_M);
+                csr_rdata   = pmpcfg_q[csr_addr[1:0]];
+                illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
+            end
+            PMPADDR0,PMPADDR1,PMPADDR2,PMPADDR3,PMPADDR4,PMPADDR5,PMPADDR6,PMPADDR7,
+            PMPADDR8,PMPADDR9,PMPADDR10,PMPADDR11,PMPADDR12,PMPADDR13,PMPADDR14,PMPADDR15 :begin
+                pmpaddr_en  = (privilege_mode_q == PRIV_LVL_M);
+                csr_rdata   = pmpaddr_q[csr_addr[3:0]];
                 illegal_csr = (privilege_mode_q != PRIV_LVL_M); 
             end
             default : begin illegal_csr = 1'b1; end
@@ -460,6 +487,64 @@ always @(*)begin
 end
 
 assign privilege_mode = privilege_mode_q;
+
+//////////////////////////////////////////////
+//machine memory protection
+//////////////////////////////////////////////
+generate
+if(PMP_ENABLE==1)begin:gen_pmp
+    for(genvar n=0; n<PMP_ENTRY; n++)begin
+        assign pmpcfg_entery_en[n] = pmpcfg_en & (csr_addr[1:0] == (n/4) );
+        assign pmpaddr_entery_en[n] = pmpaddr_en & (csr_addr[3:0] == n );
+        
+        always @(posedge clk or negedge reset_n)begin
+            if(!reset_n)begin
+                pmpcfg_q[n][7:0] <= 8'h0;
+            end else if(~pmp_lock[n] & pmpcfg_entery_en[n] )begin
+                unique case(csr_op)
+                    CSR_OP_WRITE:begin pmpcfg_q[n][7:0] <= csr_wdata[8*(n%4)+:8];end
+                    CSR_OP_SET:begin pmpcfg_q[n][7:0] <= pmpcfg_q[n][7:0] | csr_wdata[8*(n%4)+:8];end
+                    CSR_OP_CLEAR:begin pmpcfg_q[n][7:0] <= pmpcfg_q[n][7:0] & (~csr_wdata[8*(n%4)+:8]);end
+                    default:begin pmpcfg_q[n][7:0] <= pmpcfg_q[n][7:0];end
+                endcase
+            end
+        end
+    
+        assign pmp_lock[n]      = pmpcfg_q[n][7];
+        assign pmp_mode[n][2:0] = pmpcfg_q[n][4:3]; 
+    
+        if(n==PMP_ENTRY-1)begin
+            assign lock[n] = pmp_lock[n];
+        end else begin
+            assign lock[n] = pmp_lock[n] | (pmp_lock[n+1] & (pmp_mode==TOR));
+        end
+    
+        always @(posedge clk or negedge reset_n)begin
+            if(!reset_n)begin
+                pmpaddr_q[n] <= 32'h0;
+            end else if(~lock[n] & pmpaddr_entery_en[n])begin
+                unique case(csr_op)
+                    CSR_OP_WRITE:begin pmpaddr_q[n][31:0] <= csr_wdata[31:0];end
+                    CSR_OP_SET:begin pmpaddr_q[n][31:0] <= pmpaddr_q[n][31:0] | csr_wdata[31:0];end
+                    CSR_OP_CLEAR:begin pmpaddr_q[n][31:0] <= pmpaddr_q[n][31:0] & (~csr_wdata[31:0]);end
+                    default:begin pmpaddr_q[n][31:0] <= pmpaddr_q[n][31:0];end
+                endcase
+            end
+        end
+
+        assign pmpcfg[n]    = pmpcfg_q[n];
+        assign pmpaddr[n]   = pmpaddr_q[n];
+    end
+end else begin:gen_no_pmp
+    for(genvar n=0; n<PMP_ENTRY; n++)begin
+        assign pmpcfg[n][7:0]   = 8'h0;
+        assign pmpaddr[n][31:0] = 32'h0;
+    end
+end
+endgenerate
+
+
+
 
 //////////////////////////////////////////////
 //counter

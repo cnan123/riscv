@@ -72,7 +72,7 @@ $(PROGRAM).elf : $(OBJS) $(LINK_SCRIPT)
 	$(OBJCOPY) -O binary $^ $@
 
 %.dump : %.elf
-	$(OBJDUMP) --disassemble-all $^ > $@
+	$(OBJDUMP) -S  $^ > $@
 
 %.o : %.c
 	$(CC) $(CFLAGS) -MMD $(INCLUDES) -c -o $@ $<
