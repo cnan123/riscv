@@ -1,0 +1,565 @@
+TAP: riscv.cpu
+
+Open On-Chip Debugger 0.10.0+dev-00198-g35eed36ff (2021-01-03-20:28)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+User : 13 2 command.c:544 command_print(): debug_level: 4
+Debug: 14 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_adapter_khz 10000
+Debug: 15 2 command.c:143 script_debug(): command - adapter_khz ocd_adapter_khz 10000
+Debug: 17 2 core.c:1645 jtag_config_khz(): handle jtag khz
+Debug: 18 2 core.c:1612 adapter_khz_to_speed(): convert khz to interface specific speed value
+Debug: 19 2 core.c:1612 adapter_khz_to_speed(): convert khz to interface specific speed value
+User : 20 2 command.c:544 command_print(): adapter speed: 10000 kHz
+Debug: 21 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_interface remote_bitbang
+Debug: 22 2 command.c:143 script_debug(): command - interface ocd_interface remote_bitbang
+Debug: 24 2 command.c:364 register_command_handler(): registering 'ocd_remote_bitbang_port'...
+Debug: 25 2 command.c:364 register_command_handler(): registering 'ocd_remote_bitbang_host'...
+Warn : 26 2 adapter.c:159 handle_interface_command(): Adapter driver 'remote_bitbang' did not declare which transports it allows; assuming legacy JTAG-only
+Info : 27 2 transport.c:117 allow_transports(): only one transport option; autoselect 'jtag'
+Debug: 28 2 command.c:364 register_command_handler(): registering 'ocd_jtag_flush_queue_sleep'...
+Debug: 29 2 command.c:364 register_command_handler(): registering 'ocd_jtag_rclk'...
+Debug: 30 2 command.c:364 register_command_handler(): registering 'ocd_jtag_ntrst_delay'...
+Debug: 31 2 command.c:364 register_command_handler(): registering 'ocd_jtag_ntrst_assert_width'...
+Debug: 32 2 command.c:364 register_command_handler(): registering 'ocd_scan_chain'...
+Debug: 33 2 command.c:364 register_command_handler(): registering 'ocd_jtag_reset'...
+Debug: 34 2 command.c:364 register_command_handler(): registering 'ocd_runtest'...
+Debug: 35 2 command.c:364 register_command_handler(): registering 'ocd_irscan'...
+Debug: 36 2 command.c:364 register_command_handler(): registering 'ocd_verify_ircapture'...
+Debug: 37 2 command.c:364 register_command_handler(): registering 'ocd_verify_jtag'...
+Debug: 38 2 command.c:364 register_command_handler(): registering 'ocd_tms_sequence'...
+Debug: 39 2 command.c:364 register_command_handler(): registering 'ocd_wait_srst_deassert'...
+Debug: 40 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 41 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 42 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 43 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 44 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 45 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 46 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 47 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 48 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 49 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 50 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 51 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 52 2 command.c:364 register_command_handler(): registering 'ocd_jtag'...
+Debug: 53 2 command.c:364 register_command_handler(): registering 'ocd_svf'...
+Debug: 54 2 command.c:364 register_command_handler(): registering 'ocd_xsvf'...
+Debug: 55 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_remote_bitbang_host localhost
+Debug: 56 2 command.c:143 script_debug(): command - remote_bitbang_host ocd_remote_bitbang_host localhost
+Debug: 58 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_remote_bitbang_port 9999
+Debug: 59 2 command.c:143 script_debug(): command - remote_bitbang_port ocd_remote_bitbang_port 9999
+Debug: 61 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag newtap riscv cpu -irlen 5 -expected-id 0x249511C3
+Debug: 62 2 command.c:143 script_debug(): command - ocd_jtag ocd_jtag newtap riscv cpu -irlen 5 -expected-id 0x249511C3
+Debug: 63 2 tcl.c:550 jim_newtap_cmd(): Creating New Tap, Chip: riscv, Tap: cpu, Dotted: riscv.cpu, 4 params
+Debug: 64 2 tcl.c:574 jim_newtap_cmd(): Processing option: -irlen
+Debug: 65 2 tcl.c:574 jim_newtap_cmd(): Processing option: -expected-id
+Debug: 66 2 core.c:1304 jtag_tap_init(): Created Tap: riscv.cpu @ abs position 0, irlen 5, capture: 0x1 mask: 0x3
+Debug: 67 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag names
+Debug: 68 2 command.c:143 script_debug(): command - ocd_jtag ocd_jtag names
+Debug: 69 2 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_target create riscv.cpu riscv -chain-position riscv.cpu -rtos riscv
+Debug: 70 2 command.c:143 script_debug(): command - ocd_target ocd_target create riscv.cpu riscv -chain-position riscv.cpu -rtos riscv
+Debug: 71 2 target.c:1973 target_free_all_working_areas_restore(): freeing all working areas
+Debug: 72 2 riscv_debug.c:21 riscv_create_rtos(): RISC-V Debug 'RTOS' created: this doesn't mean you're running an RTOS, just that you have multi-hart support on RISC-V
+Debug: 73 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 74 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 75 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 76 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 77 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 78 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 79 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 80 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 81 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 82 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 83 2 command.c:364 register_command_handler(): registering 'ocd_riscv'...
+Debug: 84 2 command.c:364 register_command_handler(): registering 'ocd_arm'...
+Debug: 85 2 command.c:364 register_command_handler(): registering 'ocd_arm'...
+Debug: 86 2 command.c:364 register_command_handler(): registering 'ocd_arm'...
+Debug: 87 2 command.c:364 register_command_handler(): registering 'ocd_arm'...
+Debug: 88 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 89 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 90 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 91 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 92 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 93 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 94 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 95 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 96 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 97 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 98 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 99 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 100 2 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 101 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 102 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 103 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 104 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 105 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 106 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 107 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 108 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 109 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 110 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 111 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 112 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 113 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 114 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 115 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 116 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 117 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 118 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 119 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 120 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 121 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 122 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 123 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 124 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 125 3 command.c:364 register_command_handler(): registering 'ocd_riscv.cpu'...
+Debug: 126 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv set_reset_timeout_sec 2000
+Debug: 127 3 command.c:143 script_debug(): command - ocd_riscv ocd_riscv set_reset_timeout_sec 2000
+Debug: 129 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv set_command_timeout_sec 2000
+Debug: 130 3 command.c:143 script_debug(): command - ocd_riscv ocd_riscv set_command_timeout_sec 2000
+Debug: 132 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv set_prefer_sba on
+Debug: 133 3 command.c:143 script_debug(): command - ocd_riscv ocd_riscv set_prefer_sba on
+Debug: 135 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_scan_chain
+Debug: 136 3 command.c:143 script_debug(): command - scan_chain ocd_scan_chain
+User : 138 3 command.c:544 command_print():    TapName             Enabled  IdCode     Expected   IrLen IrCap IrMask
+User : 139 3 command.c:544 command_print(): -- ------------------- -------- ---------- ---------- ----- ----- ------
+User : 140 3 command.c:544 command_print():  0 riscv.cpu              Y     0x00000000 0x249511c3     5 0x01  0x03
+Debug: 141 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_init
+Debug: 142 3 command.c:143 script_debug(): command - init ocd_init
+Debug: 144 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_target init
+Debug: 145 3 command.c:143 script_debug(): command - ocd_target ocd_target init
+Debug: 147 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_target names
+Debug: 148 3 command.c:143 script_debug(): command - ocd_target ocd_target names
+Debug: 149 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu cget -event gdb-flash-erase-start
+Debug: 150 3 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu cget -event gdb-flash-erase-start
+Debug: 151 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu configure -event gdb-flash-erase-start reset init
+Debug: 152 3 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu configure -event gdb-flash-erase-start reset init
+Debug: 153 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu cget -event gdb-flash-write-end
+Debug: 154 3 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu cget -event gdb-flash-write-end
+Debug: 155 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu configure -event gdb-flash-write-end reset halt
+Debug: 156 3 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu configure -event gdb-flash-write-end reset halt
+Debug: 157 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu cget -event gdb-attach
+Debug: 158 3 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu cget -event gdb-attach
+Debug: 159 3 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu configure -event gdb-attach halt
+Debug: 160 3 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu configure -event gdb-attach halt
+Debug: 161 3 target.c:1364 handle_target_init_command(): Initializing targets...
+Debug: 162 3 riscv.c:255 riscv_init_target(): riscv_init_target()
+Debug: 163 4 semihosting_common.c:97 semihosting_common_init():  
+Debug: 164 4 command.c:364 register_command_handler(): registering 'ocd_target_request'...
+Debug: 165 4 command.c:364 register_command_handler(): registering 'ocd_trace'...
+Debug: 166 4 command.c:364 register_command_handler(): registering 'ocd_trace'...
+Debug: 167 4 command.c:364 register_command_handler(): registering 'ocd_fast_load_image'...
+Debug: 168 4 command.c:364 register_command_handler(): registering 'ocd_fast_load'...
+Debug: 169 4 command.c:364 register_command_handler(): registering 'ocd_profile'...
+Debug: 170 4 command.c:364 register_command_handler(): registering 'ocd_virt2phys'...
+Debug: 171 4 command.c:364 register_command_handler(): registering 'ocd_reg'...
+Debug: 172 4 command.c:364 register_command_handler(): registering 'ocd_poll'...
+Debug: 173 4 command.c:364 register_command_handler(): registering 'ocd_wait_halt'...
+Debug: 174 4 command.c:364 register_command_handler(): registering 'ocd_halt'...
+Debug: 175 4 command.c:364 register_command_handler(): registering 'ocd_resume'...
+Debug: 176 4 command.c:364 register_command_handler(): registering 'ocd_reset'...
+Debug: 177 4 command.c:364 register_command_handler(): registering 'ocd_soft_reset_halt'...
+Debug: 178 4 command.c:364 register_command_handler(): registering 'ocd_step'...
+Debug: 179 4 command.c:364 register_command_handler(): registering 'ocd_mdd'...
+Debug: 180 4 command.c:364 register_command_handler(): registering 'ocd_mdw'...
+Debug: 181 4 command.c:364 register_command_handler(): registering 'ocd_mdh'...
+Debug: 182 4 command.c:364 register_command_handler(): registering 'ocd_mdb'...
+Debug: 183 4 command.c:364 register_command_handler(): registering 'ocd_mwd'...
+Debug: 184 4 command.c:364 register_command_handler(): registering 'ocd_mww'...
+Debug: 185 4 command.c:364 register_command_handler(): registering 'ocd_mwh'...
+Debug: 186 4 command.c:364 register_command_handler(): registering 'ocd_mwb'...
+Debug: 187 4 command.c:364 register_command_handler(): registering 'ocd_bp'...
+Debug: 188 4 command.c:364 register_command_handler(): registering 'ocd_rbp'...
+Debug: 189 4 command.c:364 register_command_handler(): registering 'ocd_wp'...
+Debug: 190 4 command.c:364 register_command_handler(): registering 'ocd_rwp'...
+Debug: 191 4 command.c:364 register_command_handler(): registering 'ocd_load_image'...
+Debug: 192 4 command.c:364 register_command_handler(): registering 'ocd_dump_image'...
+Debug: 193 4 command.c:364 register_command_handler(): registering 'ocd_verify_image_checksum'...
+Debug: 194 4 command.c:364 register_command_handler(): registering 'ocd_verify_image'...
+Debug: 195 4 command.c:364 register_command_handler(): registering 'ocd_test_image'...
+Debug: 196 4 command.c:364 register_command_handler(): registering 'ocd_reset_nag'...
+Debug: 197 4 command.c:364 register_command_handler(): registering 'ocd_ps'...
+Debug: 198 4 command.c:364 register_command_handler(): registering 'ocd_test_mem_access'...
+Info : 199 4 remote_bitbang.c:283 remote_bitbang_init(): Initializing remote_bitbang driver
+Info : 200 4 remote_bitbang.c:214 remote_bitbang_init_tcp(): Connecting to localhost:9999
+Info : 201 5 remote_bitbang.c:299 remote_bitbang_init(): remote_bitbang driver initialized
+Info : 202 5 core.c:1365 adapter_init(): This adapter doesn't support configurable speed
+Debug: 203 5 openocd.c:142 handle_init_command(): Debug Adapter init complete
+Debug: 204 5 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_transport init
+Debug: 205 5 command.c:143 script_debug(): command - ocd_transport ocd_transport init
+Debug: 207 5 transport.c:239 handle_transport_init(): handle_transport_init
+Debug: 208 5 core.c:729 jtag_add_reset(): SRST line released
+Debug: 209 5 core.c:753 jtag_add_reset(): TRST line released
+Debug: 210 5 core.c:327 jtag_call_event_callbacks(): jtag event: TAP reset
+Debug: 211 5 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag arp_init
+Debug: 212 5 command.c:143 script_debug(): command - ocd_jtag ocd_jtag arp_init
+Debug: 213 5 core.c:1407 jtag_init_inner(): Init JTAG chain
+Debug: 214 5 core.c:327 jtag_call_event_callbacks(): jtag event: TAP reset
+Debug: 215 5 core.c:1060 jtag_examine_chain(): DR scan interrogation for IDCODE/BYPASS
+Debug: 216 5 core.c:327 jtag_call_event_callbacks(): jtag event: TAP reset
+Info : 217 243 core.c:959 jtag_examine_chain_display(): JTAG tap: riscv.cpu tap/device found: 0x249511c3 (mfg: 0x0e1 (Wintec Industries), part: 0x4951, ver: 0x2)
+Debug: 218 243 core.c:1190 jtag_validate_ircapture(): IR capture validation scan
+Debug: 219 246 core.c:1248 jtag_validate_ircapture(): riscv.cpu: IR capture 0x05
+Debug: 220 246 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_dap init
+Debug: 221 246 command.c:143 script_debug(): command - ocd_dap ocd_dap init
+Debug: 223 246 arm_dap.c:105 dap_init_all(): Initializing all DAPs ...
+Debug: 224 246 openocd.c:159 handle_init_command(): Examining targets...
+Debug: 225 246 target.c:1550 target_call_event_callbacks(): target event 17 (examine-start)
+Debug: 226 246 riscv.c:769 riscv_examine(): riscv_examine()
+Debug: 227 290 riscv.c:227 dtmcontrol_scan(): DTMCONTROL: 0x0 -> 0x1071
+Debug: 228 290 riscv.c:779 riscv_examine(): dtmcontrol=0x1071
+Debug: 229 290 riscv.c:781 riscv_examine():   version=0x1
+Debug: 230 290 riscv-013.c:1572 init_target(): init
+Debug: 231 300 riscv-013.c:436 dtmcontrol_scan(): DTMCS: 0x0 -> 0x1071
+Debug: 232 300 riscv-013.c:1344 examine(): dtmcontrol=0x1071
+Debug: 233 300 riscv-013.c:1345 examine():   dmireset=0
+Debug: 234 300 riscv-013.c:1346 examine():   idle=1
+Debug: 235 300 riscv-013.c:1347 examine():   dmistat=0
+Debug: 236 300 riscv-013.c:1348 examine():   abits=7
+Debug: 237 300 riscv-013.c:1349 examine():   version=1
+Debug: 238 312 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @00
+Debug: 239 354 riscv-013.c:379 scan(): 41b - 00000000 @11 -> b 00000000 @11
+Debug: 240 354 riscv-013.c:447 increase_dmi_busy_delay(): dtmcontrol_idle=1, dmi_busy_delay=1, ac_busy_delay=0
+Debug: 241 363 riscv-013.c:436 dtmcontrol_scan(): DTMCS: 0x10000 -> 0x1c71
+Debug: 242 373 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 000c0c82 @11
+Debug: 243 373 riscv-013.c:390 scan():  ->  allhavereset anyhavereset allrunning anyrunning authenticated version=2
+Debug: 244 373 riscv-013.c:1367 examine(): dmstatus:  0x000c0c82
+Debug: 245 418 riscv-013.c:379 scan(): 41b w 00000000 @10 -> + 00000000 @11
+Debug: 246 427 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000000 @10
+Debug: 247 438 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @10
+Debug: 248 438 riscv-013.c:390 scan():  dmactive -> 
+Debug: 249 482 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 250 482 riscv-013.c:390 scan():  ->  dmactive
+Debug: 251 493 riscv-013.c:379 scan(): 41b w 03ffffc1 @10 -> + 00000000 @10
+Debug: 252 493 riscv-013.c:390 scan():  hartselhi=1023 hartsello=1023 dmactive -> 
+Debug: 253 502 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 03ffffc1 @10
+Debug: 254 502 riscv-013.c:390 scan():  ->  hartselhi=1023 hartsello=1023 dmactive
+Debug: 255 546 riscv-013.c:379 scan(): 41b r 00000000 @10 -> + 00000000 @10
+Debug: 256 555 riscv-013.c:379 scan(): 41b - 00000000 @10 -> b 00000000 @10
+Debug: 257 555 riscv-013.c:447 increase_dmi_busy_delay(): dtmcontrol_idle=1, dmi_busy_delay=2, ac_busy_delay=0
+Debug: 258 564 riscv-013.c:436 dtmcontrol_scan(): DTMCS: 0x10000 -> 0x1c71
+Debug: 259 610 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 03ffffc1 @10
+Debug: 260 610 riscv-013.c:390 scan():  ->  hartselhi=1023 hartsello=1023 dmactive
+Debug: 261 610 riscv-013.c:1403 examine(): hartsellen=20
+Debug: 262 621 riscv-013.c:379 scan(): 41b r 00000000 @12 -> + 00000000 @10
+Debug: 263 631 riscv-013.c:379 scan(): 41b - 00000000 @12 -> b 00000000 @12
+Debug: 264 631 riscv-013.c:447 increase_dmi_busy_delay(): dtmcontrol_idle=1, dmi_busy_delay=3, ac_busy_delay=0
+Debug: 265 674 riscv-013.c:436 dtmcontrol_scan(): DTMCS: 0x10000 -> 0x1c71
+Debug: 266 684 riscv-013.c:379 scan(): 41b - 00000000 @12 -> + 00000000 @12
+Debug: 267 696 riscv-013.c:379 scan(): 41b r 00000000 @38 -> + 00000000 @12
+Debug: 268 738 riscv-013.c:379 scan(): 41b - 00000000 @38 -> b 00000000 @38
+Debug: 269 738 riscv-013.c:447 increase_dmi_busy_delay(): dtmcontrol_idle=1, dmi_busy_delay=4, ac_busy_delay=0
+Debug: 270 747 riscv-013.c:436 dtmcontrol_scan(): DTMCS: 0x10000 -> 0x1c71
+Debug: 271 758 riscv-013.c:379 scan(): 41b - 00000000 @38 -> + 20040407 @38
+Debug: 272 758 riscv-013.c:390 scan():  ->  sbaccess=2 sbasize=32 sbaccess32 sbaccess16 sbaccess8
+Debug: 273 802 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @38
+Debug: 274 812 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000002 @16
+Debug: 275 812 riscv-013.c:390 scan():  ->  progbufsize=8 datacount=2
+Info : 276 812 riscv-013.c:1434 examine(): datacount=2 progbufsize=8
+Debug: 277 823 riscv-013.c:379 scan(): 41b r 00000000 @10 -> + 00000000 @16
+Debug: 278 866 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 03ffffc1 @10
+Debug: 279 866 riscv-013.c:390 scan():  ->  hartselhi=1023 hartsello=1023 dmactive
+Debug: 280 877 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @10
+Debug: 281 877 riscv-013.c:390 scan():  dmactive -> 
+Debug: 282 887 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 283 887 riscv-013.c:390 scan():  ->  dmactive
+Debug: 284 934 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 285 944 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 000c0c82 @11
+Debug: 286 944 riscv-013.c:390 scan():  ->  allhavereset anyhavereset allrunning anyrunning authenticated version=2
+Debug: 287 955 riscv-013.c:379 scan(): 41b w 10000001 @10 -> + 00000000 @11
+Debug: 288 955 riscv-013.c:390 scan():  dmactive ackhavereset -> 
+Debug: 289 998 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 10000001 @10
+Debug: 290 998 riscv-013.c:390 scan():  ->  dmactive ackhavereset
+Debug: 291 1009 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 292 1019 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00000c82 @11
+Debug: 293 1019 riscv-013.c:390 scan():  ->  allrunning anyrunning authenticated version=2
+Debug: 294 1019 riscv-013.c:2784 riscv013_halt_current_hart(): halting hart 0
+Debug: 295 1066 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 296 1076 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00000c82 @11
+Debug: 297 1076 riscv-013.c:390 scan():  ->  allrunning anyrunning authenticated version=2
+Debug: 298 1087 riscv-013.c:379 scan(): 41b r 00000000 @10 -> + 00000000 @11
+Debug: 299 1130 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 300 1130 riscv-013.c:390 scan():  ->  dmactive
+Debug: 301 1141 riscv-013.c:379 scan(): 41b w 80000001 @10 -> + 00000000 @10
+Debug: 302 1141 riscv-013.c:390 scan(): haltreq dmactive -> 
+Debug: 303 1162 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 80000001 @10
+Debug: 304 1162 riscv-013.c:390 scan():  -> haltreq dmactive
+Debug: 305 1210 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 306 1232 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00000382 @11
+Debug: 307 1232 riscv-013.c:390 scan():  ->  allhalted anyhalted authenticated version=2
+Debug: 308 1258 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 309 1302 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00000382 @11
+Debug: 310 1302 riscv-013.c:390 scan():  ->  allhalted anyhalted authenticated version=2
+Debug: 311 1327 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @11
+Debug: 312 1327 riscv-013.c:390 scan():  dmactive -> 
+Debug: 313 1349 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 314 1349 riscv-013.c:390 scan():  ->  dmactive
+Debug: 315 1349 riscv-013.c:696 execute_abstract_command(): command=0x321008
+Debug: 316 1398 riscv-013.c:379 scan(): 41b w 00321008 @17 -> + 00000000 @10
+Debug: 317 1420 riscv-013.c:379 scan(): 41b - 00000000 @17 -> + 00321008 @17
+Debug: 318 1445 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @17
+Debug: 319 1490 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000202 @16
+Debug: 320 1490 riscv-013.c:390 scan():  ->  progbufsize=8 cmderr=2 datacount=2
+Debug: 321 1490 riscv-013.c:704 execute_abstract_command(): command 0x321008 failed; abstractcs=0x8000202
+Debug: 322 1515 riscv-013.c:379 scan(): 41b w 00000200 @16 -> + 00000000 @16
+Debug: 323 1515 riscv-013.c:390 scan():  cmderr=2 -> 
+Debug: 324 1537 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 00000200 @16
+Debug: 325 1537 riscv-013.c:390 scan():  ->  cmderr=2
+Debug: 326 1537 riscv-013.c:696 execute_abstract_command(): command=0x220301
+Debug: 327 1586 riscv-013.c:379 scan(): 41b w 00220301 @17 -> + 00000000 @16
+Debug: 328 1606 riscv-013.c:379 scan(): 41b - 00000000 @17 -> + 00220301 @17
+Debug: 329 1632 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @17
+Debug: 330 1678 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000002 @16
+Debug: 331 1678 riscv-013.c:390 scan():  ->  progbufsize=8 datacount=2
+Debug: 332 1703 riscv-013.c:379 scan(): 41b r 00000000 @04 -> + 00000000 @16
+Debug: 333 1725 riscv-013.c:379 scan(): 41b - 00000000 @04 -> + 40001104 @04
+Debug: 334 1725 riscv-013.c:1299 register_read_direct(): [0] reg[0x342] = 0x40001104
+Debug: 335 1725 riscv.c:2300 riscv_init_registers(): create register cache for 4162 registers
+Debug: 336 1726 riscv-013.c:1498 examine():  hart 0: XLEN=32, misa=0x40001104
+Debug: 337 1774 riscv-013.c:379 scan(): 41b r 00000000 @10 -> + 00000000 @04
+Debug: 338 1796 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 339 1796 riscv-013.c:390 scan():  ->  dmactive
+Debug: 340 1823 riscv-013.c:379 scan(): 41b w 00010001 @10 -> + 00000000 @10
+Debug: 341 1823 riscv-013.c:390 scan():  hartsello=1 dmactive -> 
+Debug: 342 1870 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00010001 @10
+Debug: 343 1870 riscv-013.c:390 scan():  ->  hartsello=1 dmactive
+Debug: 344 1895 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 345 1917 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 0000cc82 @11
+Debug: 346 1917 riscv-013.c:390 scan():  ->  allnonexistent anynonexistent allrunning anyrunning authenticated version=2
+Debug: 347 1917 riscv-013.c:1501 examine(): Enumerated 1 harts
+Debug: 348 1917 riscv.c:1852 riscv_resume_one_hart(): resuming hart 0
+Debug: 349 1917 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 1
+Debug: 350 1966 riscv-013.c:379 scan(): 41b r 00000000 @10 -> + 00000000 @11
+Debug: 351 1989 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00010001 @10
+Debug: 352 1989 riscv-013.c:390 scan():  ->  hartsello=1 dmactive
+Debug: 353 2015 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @10
+Debug: 354 2015 riscv-013.c:390 scan():  dmactive -> 
+Debug: 355 2062 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 356 2062 riscv-013.c:390 scan():  ->  dmactive
+Debug: 357 2087 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 358 2108 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00000382 @11
+Debug: 359 2108 riscv-013.c:390 scan():  ->  allhalted anyhalted authenticated version=2
+Debug: 360 2108 log.c:439 keep_alive(): keep_alive() was not invoked in the 1000ms timelimit (2108). This may cause trouble with GDB connections.
+Debug: 362 2108 program.c:33 riscv_program_write(): 0x7ffe7a2df800: debug_buffer[00] = DASM(0x0000100f)
+Debug: 363 2158 riscv-013.c:379 scan(): 41b w 0000100f @20 -> + 00000000 @11
+Debug: 364 2180 riscv-013.c:379 scan(): 41b - 00000000 @20 -> + 0000100f @20
+Debug: 365 2180 program.c:33 riscv_program_write(): 0x7ffe7a2df800: debug_buffer[01] = DASM(0x00100073)
+Debug: 366 2204 riscv-013.c:379 scan(): 41b w 00100073 @21 -> + 00000000 @20
+Debug: 367 2250 riscv-013.c:379 scan(): 41b - 00000000 @21 -> + 00100073 @21
+Debug: 368 2250 riscv-013.c:696 execute_abstract_command(): command=0x241000
+Debug: 369 2275 riscv-013.c:379 scan(): 41b w 00241000 @17 -> + 00000000 @21
+Debug: 370 2296 riscv-013.c:379 scan(): 41b - 00000000 @17 -> + 00241000 @17
+Debug: 371 2346 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @17
+Debug: 372 2368 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000002 @16
+Debug: 373 2368 riscv-013.c:390 scan():  ->  progbufsize=8 datacount=2
+Debug: 374 2368 riscv-013.c:696 execute_abstract_command(): command=0x2207b0
+Debug: 375 2393 riscv-013.c:379 scan(): 41b w 002207b0 @17 -> + 00000000 @16
+Debug: 376 2438 riscv-013.c:379 scan(): 41b - 00000000 @17 -> + 002207b0 @17
+Debug: 377 2464 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @17
+Debug: 378 2486 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000002 @16
+Debug: 379 2486 riscv-013.c:390 scan():  ->  progbufsize=8 datacount=2
+Debug: 380 2538 riscv-013.c:379 scan(): 41b r 00000000 @04 -> + 00000000 @16
+Debug: 381 2560 riscv-013.c:379 scan(): 41b - 00000000 @04 -> + 400000c3 @04
+Debug: 382 2560 riscv-013.c:1299 register_read_direct(): [0] reg[0x7f1] = 0x400000c3
+Debug: 383 2560 riscv.c:2017 riscv_set_register_on_hart(): [0] dcsr <- 4000b0c3
+Debug: 384 2560 riscv-013.c:2734 riscv013_set_register(): writing 0x4000b0c3 to register dcsr on hart 0
+Debug: 385 2560 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 386 2560 riscv-013.c:1102 register_write_direct(): [0] reg[0x7f1] <- 0x4000b0c3
+Debug: 387 2585 riscv-013.c:379 scan(): 41b w 4000b0c3 @04 -> + 00000000 @04
+Debug: 388 2630 riscv-013.c:379 scan(): 41b - 00000000 @04 -> + 4000b0c3 @04
+Debug: 389 2630 riscv-013.c:696 execute_abstract_command(): command=0x2307b0
+Debug: 390 2655 riscv-013.c:379 scan(): 41b w 002307b0 @17 -> + 00000000 @04
+Debug: 391 2676 riscv-013.c:379 scan(): 41b - 00000000 @17 -> + 002307b0 @17
+Debug: 392 2726 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @17
+Debug: 393 2747 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000002 @16
+Debug: 394 2747 riscv-013.c:390 scan():  ->  progbufsize=8 datacount=2
+Debug: 395 2747 riscv-013.c:3340 riscv013_step_or_resume_current_hart(): resuming hart 0 (for step?=0)
+Debug: 396 2772 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @16
+Debug: 397 2818 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00000382 @11
+Debug: 398 2818 riscv-013.c:390 scan():  ->  allhalted anyhalted authenticated version=2
+Debug: 400 2818 program.c:33 riscv_program_write(): 0x7ffe7a2df800: debug_buffer[00] = DASM(0x0000100f)
+Debug: 401 2843 riscv-013.c:379 scan(): 41b w 0000100f @20 -> + 00000000 @11
+Debug: 402 2864 riscv-013.c:379 scan(): 41b - 00000000 @20 -> + 0000100f @20
+Debug: 403 2864 program.c:33 riscv_program_write(): 0x7ffe7a2df800: debug_buffer[01] = DASM(0x00100073)
+Debug: 404 2914 riscv-013.c:379 scan(): 41b w 00100073 @21 -> + 00000000 @20
+Debug: 405 2935 riscv-013.c:379 scan(): 41b - 00000000 @21 -> + 00100073 @21
+Debug: 406 2935 riscv-013.c:696 execute_abstract_command(): command=0x241000
+Debug: 407 2960 riscv-013.c:379 scan(): 41b w 00241000 @17 -> + 00000000 @21
+Debug: 408 3006 riscv-013.c:379 scan(): 41b - 00000000 @17 -> + 00241000 @17
+Debug: 409 3031 riscv-013.c:379 scan(): 41b r 00000000 @16 -> + 00000000 @17
+Debug: 410 3053 riscv-013.c:379 scan(): 41b - 00000000 @16 -> + 08000002 @16
+Debug: 411 3053 riscv-013.c:390 scan():  ->  progbufsize=8 datacount=2
+Debug: 412 3102 riscv-013.c:379 scan(): 41b w 40000001 @10 -> + 00000000 @16
+Debug: 413 3102 riscv-013.c:390 scan():  resumereq dmactive -> 
+Debug: 414 3113 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 40000001 @10
+Debug: 415 3113 riscv-013.c:390 scan():  ->  resumereq dmactive
+Debug: 416 3124 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 417 3166 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 418 3166 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 419 3177 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @11
+Debug: 420 3177 riscv-013.c:390 scan():  dmactive -> 
+Debug: 421 3187 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 422 3187 riscv-013.c:390 scan():  ->  dmactive
+Debug: 423 3187 riscv_debug.c:37 riscv_update_threads(): Updating the RISC-V Hart List
+Debug: 424 3187 riscv_debug.c:48 riscv_update_threads():   Setting up Hart 0
+Info : 425 3187 riscv-013.c:1522 examine(): Examined RISC-V core; found 1 harts
+Info : 426 3187 riscv-013.c:1526 examine():  hart 0: XLEN=32, misa=0x40001104
+Debug: 427 3187 target.c:1550 target_call_event_callbacks(): target event 18 (examine-end)
+Debug: 428 3187 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_flash init
+Debug: 429 3187 command.c:143 script_debug(): command - ocd_flash ocd_flash init
+Debug: 430 3187 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 431 3187 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 432 3187 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=1
+Debug: 433 3234 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 434 3243 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 435 3244 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 436 3244 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+Debug: 438 3244 tcl.c:1216 handle_flash_init_command(): Initializing flash devices...
+Debug: 439 3244 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_mflash init
+Debug: 440 3244 command.c:143 script_debug(): command - ocd_mflash ocd_mflash init
+Debug: 441 3244 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 442 3244 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 443 3244 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=1
+Debug: 444 3255 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 445 3298 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 446 3298 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 447 3298 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+Debug: 449 3298 mflash.c:1377 handle_mflash_init_command(): Initializing mflash devices...
+Debug: 450 3298 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_nand init
+Debug: 451 3298 command.c:143 script_debug(): command - ocd_nand ocd_nand init
+Debug: 452 3298 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 453 3298 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 454 3298 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=1
+Debug: 455 3309 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 456 3319 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 457 3319 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 458 3319 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+Debug: 460 3319 tcl.c:497 handle_nand_init_command(): Initializing NAND devices...
+Debug: 461 3319 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_pld init
+Debug: 462 3319 command.c:143 script_debug(): command - ocd_pld ocd_pld init
+Debug: 464 3319 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 465 3319 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 466 3319 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=1
+Debug: 467 3366 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 468 3375 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 469 3375 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 470 3376 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+Debug: 472 3376 pld.c:205 handle_pld_init_command(): Initializing PLDs...
+Info : 473 3376 server.c:311 add_service(): Listening on port 3333 for gdb connections
+Debug: 474 3376 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_reset
+Debug: 475 3376 command.c:143 script_debug(): command - reset ocd_reset
+Debug: 476 3376 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 477 3376 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 478 3376 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=1
+Debug: 479 3387 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 480 3430 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 481 3430 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 482 3430 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+Debug: 484 3430 target.c:1568 target_call_reset_callbacks(): target reset 1 (run)
+Debug: 485 3430 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_target names
+Debug: 486 3430 command.c:143 script_debug(): command - ocd_target ocd_target names
+Debug: 487 3430 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event reset-start
+Debug: 488 3430 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event reset-start
+Debug: 489 3430 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_transport select
+Debug: 490 3430 command.c:143 script_debug(): command - ocd_transport ocd_transport select
+Debug: 491 3430 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag arp_init-reset
+Debug: 492 3430 command.c:143 script_debug(): command - ocd_jtag ocd_jtag arp_init-reset
+Debug: 493 3430 core.c:1521 jtag_init_reset(): Initializing with hard TRST+SRST reset
+Debug: 494 3430 core.c:742 jtag_add_reset(): JTAG reset with TLR instead of TRST
+Debug: 495 3430 core.c:327 jtag_call_event_callbacks(): jtag event: TAP reset
+Debug: 496 3430 core.c:1407 jtag_init_inner(): Init JTAG chain
+Debug: 497 3430 core.c:327 jtag_call_event_callbacks(): jtag event: TAP reset
+Debug: 498 3430 core.c:1060 jtag_examine_chain(): DR scan interrogation for IDCODE/BYPASS
+Debug: 499 3430 core.c:327 jtag_call_event_callbacks(): jtag event: TAP reset
+Info : 500 3659 core.c:959 jtag_examine_chain_display(): JTAG tap: riscv.cpu tap/device found: 0x249511c3 (mfg: 0x0e1 (Wintec Industries), part: 0x4951, ver: 0x2)
+Debug: 501 3659 core.c:1190 jtag_validate_ircapture(): IR capture validation scan
+Debug: 502 3702 core.c:1248 jtag_validate_ircapture(): riscv.cpu: IR capture 0x05
+Debug: 503 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_transport select
+Debug: 504 3702 command.c:143 script_debug(): command - ocd_transport ocd_transport select
+Debug: 505 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu cget -chain-position
+Debug: 506 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu cget -chain-position
+Debug: 507 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag tapisenabled riscv.cpu
+Debug: 508 3702 command.c:143 script_debug(): command - ocd_jtag ocd_jtag tapisenabled riscv.cpu
+Debug: 509 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event examine-start
+Debug: 510 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event examine-start
+Debug: 511 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu arp_examine allow-defer
+Debug: 512 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu arp_examine allow-defer
+Debug: 513 3702 riscv.c:769 riscv_examine(): riscv_examine()
+Debug: 514 3702 riscv.c:771 riscv_examine(): Target was already examined.
+Debug: 515 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event examine-end
+Debug: 516 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event examine-end
+Debug: 517 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event reset-assert-pre
+Debug: 518 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event reset-assert-pre
+Debug: 519 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_transport select
+Debug: 520 3702 command.c:143 script_debug(): command - ocd_transport ocd_transport select
+Debug: 521 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu cget -chain-position
+Debug: 522 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu cget -chain-position
+Debug: 523 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag tapisenabled riscv.cpu
+Debug: 524 3702 command.c:143 script_debug(): command - ocd_jtag ocd_jtag tapisenabled riscv.cpu
+Debug: 525 3702 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu arp_reset assert 0
+Debug: 526 3702 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu arp_reset assert 0
+Debug: 527 3702 target.c:1973 target_free_all_working_areas_restore(): freeing all working areas
+Debug: 528 3714 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @11
+Debug: 529 3714 riscv-013.c:390 scan():  dmactive -> 
+Debug: 530 3724 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 531 3724 riscv-013.c:390 scan():  ->  dmactive
+Debug: 532 3770 riscv-013.c:379 scan(): 41b w 00000003 @10 -> + 00000000 @10
+Debug: 533 3770 riscv-013.c:390 scan():  ndmreset dmactive -> 
+Debug: 534 3772 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000003 @10
+Debug: 535 3772 riscv-013.c:390 scan():  ->  ndmreset dmactive
+Debug: 536 3772 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event reset-assert-post
+Debug: 537 3772 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event reset-assert-post
+Debug: 538 3772 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event reset-deassert-pre
+Debug: 539 3772 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event reset-deassert-pre
+Debug: 540 3772 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_transport select
+Debug: 541 3772 command.c:143 script_debug(): command - ocd_transport ocd_transport select
+Debug: 542 3773 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu cget -chain-position
+Debug: 543 3773 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu cget -chain-position
+Debug: 544 3773 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_jtag tapisenabled riscv.cpu
+Debug: 545 3773 command.c:143 script_debug(): command - ocd_jtag ocd_jtag tapisenabled riscv.cpu
+Debug: 546 3773 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu arp_reset deassert 0
+Debug: 547 3773 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu arp_reset deassert 0
+Debug: 548 3773 target.c:1973 target_free_all_working_areas_restore(): freeing all working areas
+Debug: 549 3773 riscv.c:826 riscv_deassert_reset(): RISCV DEASSERT RESET
+Debug: 550 3775 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @10
+Debug: 551 3775 riscv-013.c:390 scan():  dmactive -> 
+Debug: 552 3784 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 553 3784 riscv-013.c:390 scan():  ->  dmactive
+Debug: 554 3830 riscv-013.c:379 scan(): 41b w 00000001 @10 -> + 00000000 @10
+Debug: 555 3830 riscv-013.c:390 scan():  dmactive -> 
+Debug: 556 3840 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 00000001 @10
+Debug: 557 3840 riscv-013.c:390 scan():  ->  dmactive
+Debug: 558 3840 riscv-013.c:1704 deassert_reset(): Waiting for hart 0 to run out of reset.
+Debug: 559 3851 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 560 3894 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 000f0c82 @11
+Debug: 561 3894 riscv-013.c:390 scan():  ->  allhavereset anyhavereset allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 562 3905 riscv-013.c:379 scan(): 41b w 10000001 @10 -> + 00000000 @11
+Debug: 563 3905 riscv-013.c:390 scan():  dmactive ackhavereset -> 
+Debug: 564 3915 riscv-013.c:379 scan(): 41b - 00000000 @10 -> + 10000001 @10
+Debug: 565 3915 riscv-013.c:390 scan():  ->  dmactive ackhavereset
+Debug: 566 3915 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event reset-deassert-post
+Debug: 567 3915 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event reset-deassert-post
+Debug: 568 3915 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_riscv.cpu invoke-event reset-end
+Debug: 569 3915 command.c:143 script_debug(): command - ocd_riscv.cpu ocd_riscv.cpu invoke-event reset-end
+Debug: 571 3915 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 572 3915 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 573 3915 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=2
+Debug: 574 3962 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @10
+Debug: 575 3972 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 576 3972 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 577 3972 riscv.c:1091 riscv_poll_hart():   triggered running
+Debug: 578 3972 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+Debug: 579 3972 command.c:143 script_debug(): command - ocd_command ocd_command type ocd_shutdown
+Debug: 580 3972 command.c:143 script_debug(): command - shutdown ocd_shutdown
+Debug: 581 3972 riscv.c:1102 riscv_openocd_poll(): polling all harts
+Debug: 582 3972 riscv.c:1935 riscv_set_current_hartid(): setting hartid to 0, was 0
+Debug: 583 3972 riscv.c:1081 riscv_poll_hart(): polling hart 0, target->state=1
+Debug: 584 3983 riscv-013.c:379 scan(): 41b r 00000000 @11 -> + 00000000 @11
+Debug: 585 4026 riscv-013.c:379 scan(): 41b - 00000000 @11 -> + 00030c82 @11
+Debug: 586 4026 riscv-013.c:390 scan():  ->  allresumeack anyresumeack allrunning anyrunning authenticated version=2
+Debug: 587 4026 riscv.c:1120 riscv_openocd_poll():   no harts just halted, target->state=1
+User : 589 4026 server.c:740 handle_shutdown_command(): shutdown command invoked
+Debug: 590 4026 riscv.c:274 riscv_deinit_target(): riscv_deinit_target()
+Debug: 591 4026 riscv-013.c:1332 deinit_target(): riscv_deinit_target()
+Debug: 592 4026 target.c:1973 target_free_all_working_areas_restore(): freeing all working areas
+Info : 593 4026 remote_bitbang.c:120 remote_bitbang_quit(): remote_bitbang interface quit
